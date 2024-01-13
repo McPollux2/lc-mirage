@@ -18,8 +18,9 @@ namespace Mirage
 
 open BepInEx
 open HarmonyLib
-open Mirage.PluginInfo
 open Netcode
+open Mirage.PluginInfo
+open Mirage.Patch.InitializePrefab
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -28,4 +29,4 @@ type Plugin() =
     member _.Awake() =
         initNetcodePatcher()
         let harmony = new Harmony(pluginId)
-        ()
+        harmony.PatchAll(typeof<InitializePrefab>)

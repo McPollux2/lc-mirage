@@ -52,10 +52,16 @@ type AudioStream() =
         stopAudioServer()
         stopAudioClient()
 
-    member private this.Awake() =
+    member this.Awake() =
         audioSource <- Some <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() = stopAll()
+
+    /// <summary>
+    /// Whether the server is is running or not (broadcasting audio to clients).<br />
+    /// This can only be invoked by the host.
+    /// </summary>
+    member _.IsServerRunning() = fold (konst isRunning) false audioServer
 
     /// <summary>
     /// Stream the given audio file to all clients. This can only be invoked by the host.
@@ -64,7 +70,7 @@ type AudioStream() =
         if not this.IsHost then invalidOp "This method can only be invoked by the host."
         stopAudioServer()
         let audioReader = new Mp3FileReader(filePath)
-        audioServer <- Some <| startServer this.SendFrameClientRpc audioReader
+        audioServer <- Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
         this.InitializeAudioClientRpc <| getPcmHeader audioReader
 
     /// <summary>
@@ -113,3 +119,10 @@ type AudioStream() =
                         audioClient
                 setFrameData client frameData 
         }
+
+    /// <summary>
+    /// Called when audio is finished streaming.<br />
+    /// This disables the client timeout to allow it to continue playing all the audio it already has.
+    /// </summary>
+    [<ClientRpc>]
+    member _.FinishAudioClientRpc() = iter stopTimeout audioClient

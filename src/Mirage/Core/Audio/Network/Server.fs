@@ -35,6 +35,7 @@ let [<Literal>] ChannelTimeout = 30_000 // 30 seconds.
 type AudioServer =
     private
         {   sendFrame: FrameData -> Unit
+            onFinish: Unit -> Unit
             audioReader: Mp3FileReader
             channel: BlockingQueueAgent<Option<FrameData>>
             canceller: CancellationTokenSource
@@ -61,8 +62,9 @@ let stopServer (server: AudioServer) =
 /// <param name="audioReader">
 /// Source audio to stream from. Note: This function implicitly disposes the <b>AudioReader</b> when it finishes processing frames.
 /// </param>
-let startServer (sendFrame: FrameData -> Unit) (audioReader: Mp3FileReader) : AudioServer =
+let startServer (sendFrame: FrameData -> Unit) (onFinish: Unit -> Unit) (audioReader: Mp3FileReader) : AudioServer =
     {   sendFrame = sendFrame
+        onFinish = onFinish
         audioReader = audioReader
         channel = new BlockingQueueAgent<Option<FrameData>>(Int32.MaxValue)
         canceller = new CancellationTokenSource()
@@ -109,3 +111,8 @@ let broadcastAudio (server: AudioServer) : Unit =
     with | error ->
         logError $"AudioServer consumer caught an exception: {error.Message}"
         stopServer server
+
+/// <summary>
+/// Whether the server is currently running or not.
+/// </summary>
+let isRunning (server: AudioServer) = not server.stopped

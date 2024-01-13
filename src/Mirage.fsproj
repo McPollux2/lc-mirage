@@ -80,6 +80,7 @@
     <Compile Include="Mirage/Core/Audio/Network/Client.fs" />
     <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
     <Compile Include="Mirage/Unity/AudioStream.fs" />
+    <Compile Include="Mirage/Patch/InitializePrefab.fs" />
     <Compile Include="Mirage/Netcode.fs" />
     <Compile Include="Properties/AssemblyInfo.fs" />
     <Compile Include="Mirage/Plugin.fs" />

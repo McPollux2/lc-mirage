@@ -20,7 +20,7 @@ open FSharpPlus
 open UnityEngine
 open NAudio.Wave
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
-open System.Diagnostics
+open System
 open System.Threading.Tasks
 open Mirage.Core.Audio.Data
 open Mirage.PluginInfo
@@ -36,6 +36,7 @@ type AudioClient =
             pcmHeader: PcmHeader
             decompressor: IMp3FrameDecompressor
             mutable startTime: int64
+            mutable timeoutEnabled: bool
             mutable stopped: bool
         }
 
@@ -76,6 +77,7 @@ let startClient (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioClient 
         pcmHeader = pcmHeader
         decompressor = new AcmMp3FrameDecompressor(waveFormat)
         startTime = 0
+        timeoutEnabled = false
         stopped = false
     }
 
@@ -89,7 +91,7 @@ let setFrameData (client: AudioClient) (frameData: FrameData) =
             ignore <| client.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
         if not client.audioSource.isPlaying then
             client.audioSource.Play()
-        client.startTime <- Stopwatch.GetTimestamp()
+        client.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     with | error ->
         logError $"Failed to set frame data: {error.Message}"
         stopClient client
@@ -100,17 +102,19 @@ let setFrameData (client: AudioClient) (frameData: FrameData) =
 /// </summary>
 let startTimeout (client: AudioClient) (timeout: int<second>) : Task<Unit> =
     task {
-        try
-            let timeoutMs = int64 timeout * 1000L
-            client.startTime <- Stopwatch.GetTimestamp()
-            let mutable currentTime = client.startTime
-            while currentTime - client.startTime < timeoutMs do
-                do! Async.Sleep 1000
-                currentTime <- Stopwatch.GetTimestamp()
-            if not client.stopped then
-                logError $"AudioClient timed out after not receiving frame data for {timeout} seconds."
-                stopClient client
-        with | error ->
-            logError $"An exception was found while waiting for AudioServer to timeout: {error.Message}"
+        client.timeoutEnabled <- true
+        let timeoutMs = int64 timeout * 1000L
+        client.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        let mutable currentTime = client.startTime
+        while not client.stopped && client.timeoutEnabled && currentTime - client.startTime < timeoutMs do
+            do! Async.Sleep 1000
+            currentTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        if not client.stopped then
+            logError $"AudioClient timed out after not receiving frame data for {timeout} seconds."
             stopClient client
     }
+
+/// <summary>
+/// Disable the timeout started by <b>startTimeout</b>.
+/// </summary>
+let stopTimeout (client: AudioClient) = client.timeoutEnabled <- false
