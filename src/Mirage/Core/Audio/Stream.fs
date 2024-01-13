@@ -1,0 +1,131 @@
+(*
+ * Copyright (C) 2024 qwbarch
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *)
+module Mirage.Core.Audio.Stream
+
+open Data
+open System.Diagnostics
+open FSharpPlus
+open FSharpPlus.Data
+open System.Collections.Generic
+open NAudio.Wave
+
+/// <summary>
+/// Contains delay timings for streaming audio.
+/// </summary>
+type private BufferTimer =
+    {   // Current seconds (in audio duration) sent to the user.
+        currentBuffer: float
+        // Maximum seconds (of audio duration) to buffer.
+        maximumBuffer: float
+        // Holds the timestamp received during the previous frame.
+        previousTime: float
+    }
+
+let private frequency = float Stopwatch.Frequency / 1000.0
+
+/// <summary>
+/// Default parameters for <b>BufferTimer</b>.
+/// </summary>
+let private defaultTimer =
+    {   maximumBuffer = float Stopwatch.Frequency * 2.0 // 2 seconds (of audio duration) buffered.
+        currentBuffer = zero
+        previousTime = zero
+    }
+
+/// <summary>
+/// Convenience type for calculating audio buffer delay timings.
+/// 
+/// Note: The <b>ReaderT</b> environment contains mutable state, being the <b>Mp3FileReader</b> and
+/// <b>LinkedList</b>.
+/// </summary>
+type private AudioBuffer<'A> = ReaderT<Mp3FileReader * LinkedList<float>, StateT<BufferTimer, Async<'A>>>
+
+let private runAudioBuffer (program: AudioBuffer<_>) =
+    StateT.run << ReaderT.run program
+
+/// <summary>
+/// Store the amount of audio duration that should be delayed, in a buffer.
+/// </summary>
+let private bufferAudioDelay : AudioBuffer<_> =
+    monad' {
+        let! (audioReader, delayBuffer) = ask
+        let! timer = get
+        let currentTime = audioReader.CurrentTime.TotalMilliseconds * frequency
+        let delay = currentTime - timer.previousTime
+        ignore <| delayBuffer.AddLast delay
+        return! put {
+            timer with
+                previousTime = currentTime
+                currentBuffer = timer.currentBuffer + delay
+        }
+    }
+
+/// <summary>
+/// Delay until the desired buffer (of audio duration) is reached.
+/// If the buffer is already reached, this will simply do nothing.
+/// </summary>
+let private delayUntilBufferReached : AudioBuffer<_> =
+    monad' {
+        let! (_, delayBuffer) = ask
+        let! timer = get
+        if timer.currentBuffer >= timer.maximumBuffer then
+            let delay = delayBuffer.First.Value
+            delayBuffer.RemoveFirst()
+            let startTime = Stopwatch.GetTimestamp()
+            let mutable delayedTime = 0.0
+            return! liftAsync <| async {
+                while delayedTime < delay do
+                    do! Async.Sleep 100
+                    delayedTime <- float <| Stopwatch.GetTimestamp() - startTime
+            }
+            // Async.sleep isn't accurate and can sleep less/more than what we wanted.
+            // If it slept more than expected, we'll need to reduce the buffer a bit.
+            let multiplier = if delayedTime > delay then 2.0 else 1.0
+            return! put {
+                timer with
+                    currentBuffer = timer.currentBuffer - delayedTime - (delay * multiplier)
+            }
+    }
+
+/// <summary>
+/// Streams audio using the given <b>sendFrame</b> function, internally handling the timing between payloads.
+/// </summary>
+/// <param name="audioReader">
+/// Source audio to read from. Be careful not to mutate its state while <b>streamAudio</b> is running. Mutating its state <b><i>WILL</i></b> cause hard to debug issues.
+/// </param>
+/// <param name="sendFrame">
+/// Function to run whenever frame data is available. A value of <b>None</b> is passed when the stream is over.
+/// </param>
+let streamAudio (audioReader: Mp3FileReader) (sendFrame: Option<FrameData> -> Async<Unit>) : Async<Unit> =
+    let rec processAudio (frame: Mp3Frame) =
+        monad' {
+            if isNull frame || isNull frame.RawData then
+                return! liftAsync <| sendFrame None
+            else
+                return! liftAsync << sendFrame <| Some
+                    {   rawData = frame.RawData
+                        sampleIndex = int audioReader.tableOfContents[audioReader.tocIndex].SamplePosition
+                    }
+                return! bufferAudioDelay
+                return! delayUntilBufferReached
+                return! processAudio <| audioReader.ReadNextFrame()
+        }
+    map ignore <|
+        runAudioBuffer
+            (processAudio <| audioReader.ReadNextFrame())
+            (audioReader, new LinkedList<float>())
+            defaultTimer
