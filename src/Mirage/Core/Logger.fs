@@ -21,7 +21,22 @@ open Mirage.PluginInfo
 
 let private logger = Logging.Logger.CreateLogSource(pluginId)
 
-let inline logInfo (message: string) = logger.LogInfo message
-let inline logDebug (message: string) = logger.LogDebug message
-let inline logWarning (message: string) = logger.LogWarning message
-let inline logError (message: string) = logger.LogError message
+let logInfo (message: string) = logger.LogInfo message
+let logDebug (message: string) = logger.LogDebug message
+let logWarning (message: string) = logger.LogWarning message
+let logError (message: string) = logger.LogError message
+
+/// <summary>
+/// If the program results in an error, this function logs the error without rethrowing it.
+/// </summary>
+let handleErrorWith (onError: Unit -> Unit) (program: Result<Unit, string>) : Unit =
+    match program with
+        | Ok _ -> ()
+        | Error message ->
+            logError message
+            onError()
+
+/// <summary>
+/// If the program results in an error, this function logs the error without rethrowing it.
+/// </summary>
+let handleError : Result<Unit,string> -> Unit = handleErrorWith id

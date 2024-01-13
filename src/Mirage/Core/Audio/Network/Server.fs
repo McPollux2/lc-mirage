@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Unity.Audio.Network.Server
+module Mirage.Core.Audio.Network.Server
 
 open NAudio.Wave
 open FSharpPlus
@@ -33,45 +33,57 @@ let [<Literal>] ChannelTimeout = 30_000 // 30 seconds.
 /// Handles the server side of audio streaming.
 /// </summary>
 type AudioServer =
-    { sendFrame: FrameData -> Unit
-      audioReader: Mp3FileReader
-      channel: BlockingQueueAgent<Option<FrameData>>
-      canceller: CancellationTokenSource
-    }
+    private
+        {   sendFrame: FrameData -> Unit
+            audioReader: Mp3FileReader
+            channel: BlockingQueueAgent<Option<FrameData>>
+            canceller: CancellationTokenSource
+            mutable stopped: bool
+        }
 
 /// <summary>
 /// Stop the audio server. This must be called to cleanup resources.
 /// </summary>
 let stopServer (server: AudioServer) =
-    server.canceller.Cancel()
-    dispose server.canceller
-    dispose server.audioReader
-    dispose server.channel
+    if not server.stopped then
+        server.stopped <- true
+        server.canceller.Cancel()
+        dispose server.canceller
+        dispose server.audioReader
+        dispose server.channel
 
 /// <summary>
-/// Start streaming audio to clients.
+/// Start the audio server. This does not begin broadcasting audio.
 /// </summary>
+/// <param name="sendFrame">
+/// The RPC method for sending frame data to all clients.
+/// </param>
+/// <param name="audioReader">
+/// Source audio to stream from. Note: This function implicitly disposes the <b>AudioReader</b> when it finishes processing frames.
+/// </param>
 let startServer (sendFrame: FrameData -> Unit) (audioReader: Mp3FileReader) : AudioServer =
-    let channel = new BlockingQueueAgent<Option<FrameData>>(Int32.MaxValue)
-    let canceller = new CancellationTokenSource()
-    let server =
-        {   sendFrame = sendFrame
-            audioReader = audioReader
-            channel = channel
-            canceller = canceller
-        }
+    {   sendFrame = sendFrame
+        audioReader = audioReader
+        channel = new BlockingQueueAgent<Option<FrameData>>(Int32.MaxValue)
+        canceller = new CancellationTokenSource()
+        stopped = false
+    }
 
+/// <summary>
+/// Begin broadcasting audio to all clients.
+/// </summary>
+let broadcastAudio (server: AudioServer) : Unit =
     // The "producer" processes the audio frames from a separate thread, and passes it onto the consumer.
     // If any exceptions are found, AudioReader is disposed.
     let producer =
         async {
             try
                 return!
-                    streamAudio audioReader <| fun frameData ->
-                        channel.AsyncAdd(frameData, ChannelTimeout)
+                    streamAudio server.audioReader <| fun frameData ->
+                        server.channel.AsyncAdd(frameData, ChannelTimeout)
             with | error ->
-                logError $"AudioServer producer thread caught an exception: {error.Message}"
-                dispose audioReader
+                logError $"AudioServer producer caught an exception: {error.Message}"
+                dispose server.audioReader
         }
 
     // The "consumer" reads the processed audio frames and then runs the sendFrame function.
@@ -80,22 +92,20 @@ let startServer (sendFrame: FrameData -> Unit) (audioReader: Mp3FileReader) : Au
             match frameData with
                 | None -> stopServer server
                 | Some frame ->
-                    sendFrame frame
-                    return! consumer =<< channel.AsyncGet ChannelTimeout
+                    server.sendFrame frame
+                    return! consumer =<< server.channel.AsyncGet ChannelTimeout
         }
 
     // Start the producer on a separate thread.
-    Async.Start(producer, canceller.Token)
+    Async.Start(producer, server.canceller.Token)
 
     // Start the consumer in the current thread.
     try
-        let toTask async = Async.StartImmediateAsTask(async, canceller.Token)
-        channel.AsyncGet ChannelTimeout
+        let toTask async = Async.StartImmediateAsTask(async, server.canceller.Token)
+        server.channel.AsyncGet ChannelTimeout
             >>= consumer
             |> toTask
             |> _.AsUniTask().Forget()
     with | error ->
-        logError $"AudioServer consumed caught an exception: {error.Message}"
+        logError $"AudioServer consumer caught an exception: {error.Message}"
         stopServer server
-    
-    server

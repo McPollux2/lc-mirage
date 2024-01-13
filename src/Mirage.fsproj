@@ -78,6 +78,7 @@
     <Compile Include="Mirage/Core/Audio/Network/Stream.fs" />
     <Compile Include="Mirage/Core/Audio/Network/Server.fs" />
     <Compile Include="Mirage/Core/Audio/Network/Client.fs" />
+    <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
     <Compile Include="Mirage/Unity/AudioStream.fs" />
     <Compile Include="Mirage/Netcode.fs" />
     <Compile Include="Properties/AssemblyInfo.fs" />
