@@ -103,9 +103,10 @@ let private delayUntilBufferReached : AudioBuffer<_> =
 
 /// <summary>
 /// Streams audio using the given <b>sendFrame</b> function, internally handling the timing between payloads.
+/// Note: This function implicitly disposes the <b>AudioReader</b> when it finishes processing frames.
 /// </summary>
 /// <param name="audioReader">
-/// Source audio to read from. Be careful not to mutate its state while <b>streamAudio</b> is running. Mutating its state <b><i>WILL</i></b> cause hard to debug issues.
+/// Source audio to read from. Since <b>streamAudio</b> disposes the audio reader when finished, you should not be using any of its methods after the stream starts.
 /// </param>
 /// <param name="sendFrame">
 /// Function to run whenever frame data is available. A value of <b>None</b> is passed when the stream is over.

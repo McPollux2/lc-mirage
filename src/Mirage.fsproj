@@ -9,6 +9,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharpPlus" Version="1.5.0" />
+    <Reference Include="FSharp.Control.AsyncSeq">
+      <HintPath>../lib/FSharp.Control.AsyncSeq.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharpx.Async">
+      <HintPath>../lib/FSharpx.Async.dll</HintPath>
+    </Reference>
     <Reference Include="0Harmony">
       <HintPath>../lib/0Harmony.dll</HintPath>
     </Reference>
@@ -70,6 +76,9 @@
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
     <Compile Include="Mirage/Core/Audio/Stream.fs" />
+    <Compile Include="Mirage/Unity/Audio/Server.fs" />
+    <Compile Include="Mirage/Unity/Audio/Client.fs" />
+    <Compile Include="Mirage/Unity/Audio/Stream.fs" />
     <Compile Include="Mirage/Netcode.fs" />
     <Compile Include="Properties/AssemblyInfo.fs" />
     <Compile Include="Mirage/Plugin.fs" />

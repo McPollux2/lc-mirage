@@ -17,6 +17,7 @@
 module Mirage.Core.Audio.Data
 
 open Unity.Netcode
+open NAudio.Wave
 
 /// <summary>
 /// Represents raw frame data and the sample index it begins at.
@@ -49,3 +50,14 @@ type PcmHeader =
             serializer.SerializeValue(&this.frequency)
             serializer.SerializeValue(&this.blockSize)
             serializer.SerializeValue(&this.bitRate)
+
+/// <summary>
+/// Extracts the pcm header information of an <b>Mp3FileReader</b>.
+/// </summary>
+let getPcmHeader (audioReader: Mp3FileReader) =
+    {   samples = int audioReader.totalSamples
+        channels = audioReader.Mp3WaveFormat.Channels
+        frequency = audioReader.Mp3WaveFormat.SampleRate
+        blockSize  = int audioReader.Mp3WaveFormat.blockSize
+        bitRate = audioReader.WaveFormat.AverageBytesPerSecond * sizeof<float>
+    }
