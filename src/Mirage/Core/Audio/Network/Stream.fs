@@ -14,14 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Core.Audio.Stream
+module Mirage.Core.Audio.Network.Stream
 
-open Data
+open System.Collections.Generic
 open System.Diagnostics
 open FSharpPlus
 open FSharpPlus.Data
-open System.Collections.Generic
 open NAudio.Wave
+open Mirage.Core.Audio.Data
 
 /// <summary>
 /// Contains delay timings for streaming audio.

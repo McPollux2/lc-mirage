@@ -27,7 +27,7 @@ open System.Reflection
 open UnityEngine
 open FSharpPlus
 
-let private flags =
+let [<Literal>] private flags =
     BindingFlags.NonPublic
         ||| BindingFlags.Instance
         ||| BindingFlags.Static
