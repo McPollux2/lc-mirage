@@ -52,6 +52,7 @@ let stopServer (server: AudioServer) =
         dispose server.canceller
         dispose server.audioReader
         dispose server.channel
+        server.onFinish()
 
 /// <summary>
 /// Start the audio server. This does not begin broadcasting audio.
@@ -76,7 +77,6 @@ let startServer (sendFrame: FrameData -> Unit) (onFinish: Unit -> Unit) (audioRe
 /// </summary>
 let broadcastAudio (server: AudioServer) : Unit =
     // The "producer" processes the audio frames from a separate thread, and passes it onto the consumer.
-    // If any exceptions are found, AudioReader is disposed.
     let producer =
         async {
             try
@@ -84,8 +84,8 @@ let broadcastAudio (server: AudioServer) : Unit =
                     streamAudio server.audioReader <| fun frameData ->
                         server.channel.AsyncAdd(frameData, ChannelTimeout)
             with | error ->
-                logError $"AudioServer producer caught an exception: {error.Message}"
-                dispose server.audioReader
+                logError $"{error}"
+                stopServer server
         }
 
     // The "consumer" reads the processed audio frames and then runs the sendFrame function.

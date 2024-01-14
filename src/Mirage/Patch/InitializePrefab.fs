@@ -96,16 +96,16 @@ type InitializePrefab() =
                             let playAudio (enemy: MaskedPlayerEnemy) =
                                 task {
                                     let audioStream = enemy.GetComponent<AudioStream>()
-                                    if not <| audioStream.IsServerRunning() then
-                                        logInfo $"Found {mirageEnemies.Length} mirage enemies spawned."
-                                        logInfo $"Starting new audio."
-                                        logInfo "Streaming audio"
-                                        audioStream.StreamAudioFromFile $"{Application.dataPath}/../BepInEx/plugins/asset/ram-ranch.mp3"
-                                        do! Task.Delay 200
+                                    //if not <| audioStream.IsServerRunning() then
+                                    logInfo $"Found {mirageEnemies.Length} mirage enemies spawned."
+                                    logInfo $"Starting new audio."
+                                    logInfo "Streaming audio"
+                                    audioStream.StreamAudioFromFile $"{Application.dataPath}/../BepInEx/plugins/asset/ram-ranch.mp3"
+                                    do! Task.Delay 200
                                 }
                             let! _ = traverse playAudio mirageEnemies
                             //logInfo $"found enemies: {mirageEnemies.Length}"
-                            return! Task.Delay(1000)
+                            return! Task.Delay(4000)
                     }
                 keepSendingAudio().AsUniTask().Forget()
         }

@@ -22,6 +22,7 @@ open FSharpPlus
 open FSharpPlus.Data
 open NAudio.Wave
 open Mirage.Core.Audio.Data
+open Mirage.Core.Logger
 
 /// <summary>
 /// Contains delay timings for streaming audio.
@@ -119,7 +120,7 @@ let streamAudio (audioReader: Mp3FileReader) (sendFrame: Option<FrameData> -> As
             else
                 return! liftAsync << sendFrame <| Some
                     {   rawData = frame.RawData
-                        sampleIndex = int audioReader.tableOfContents[audioReader.tocIndex].SamplePosition
+                        sampleIndex = int audioReader.tableOfContents[audioReader.tocIndex - 1].SamplePosition
                     }
                 return! bufferAudioDelay
                 return! delayUntilBufferReached

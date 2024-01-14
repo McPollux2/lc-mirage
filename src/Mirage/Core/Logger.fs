@@ -21,10 +21,10 @@ open Mirage.PluginInfo
 
 let private logger = Logging.Logger.CreateLogSource(pluginId)
 
-let logInfo (message: string) = logger.LogInfo message
-let logDebug (message: string) = logger.LogDebug message
-let logWarning (message: string) = logger.LogWarning message
-let logError (message: string) = logger.LogError message
+let internal logInfo (message: string) = logger.LogInfo message
+let internal logDebug (message: string) = logger.LogDebug message
+let internal logWarning (message: string) = logger.LogWarning message
+let internal logError (message: string) = logger.LogError message
 
 /// <summary>
 /// If the program results in an error, this function logs the error without rethrowing it.

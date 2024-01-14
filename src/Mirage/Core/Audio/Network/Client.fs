@@ -66,6 +66,7 @@ let startClient (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioClient 
             pcmHeader.frequency,
             false
         )
+    ignore <| audioSource.clip.SetData(Array.zeroCreate(pcmHeader.samples * pcmHeader.channels), 0)
     let waveFormat =
         new Mp3WaveFormat(
             pcmHeader.frequency,
@@ -109,7 +110,7 @@ let startTimeout (client: AudioClient) (timeout: int<second>) : Task<Unit> =
         while not client.stopped && client.timeoutEnabled && currentTime - client.startTime < timeoutMs do
             do! Async.Sleep 1000
             currentTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        if not client.stopped then
+        if not client.stopped && client.timeoutEnabled then
             logError $"AudioClient timed out after not receiving frame data for {timeout} seconds."
             stopClient client
     }
