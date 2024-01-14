@@ -84,7 +84,7 @@ let broadcastAudio (server: AudioServer) : Unit =
                     streamAudio server.audioReader <| fun frameData ->
                         server.channel.AsyncAdd(frameData, ChannelTimeout)
             with | error ->
-                logError $"{error}"
+                logError $"AudioServer producer caught an exception: {error}"
                 stopServer server
         }
 
@@ -109,7 +109,7 @@ let broadcastAudio (server: AudioServer) : Unit =
             |> toTask
             |> _.AsUniTask().Forget()
     with | error ->
-        logError $"AudioServer consumer caught an exception: {error.Message}"
+        logError $"AudioServer consumer caught an exception: {error}"
         stopServer server
 
 /// <summary>

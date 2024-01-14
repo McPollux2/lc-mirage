@@ -94,7 +94,7 @@ let setFrameData (client: AudioClient) (frameData: FrameData) =
             client.audioSource.Play()
         client.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     with | error ->
-        logError $"Failed to set frame data: {error.Message}"
+        logError $"Failed to set frame data: {error}"
         stopClient client
 
 /// <summary>
