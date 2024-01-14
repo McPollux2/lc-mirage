@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="Mirage/PluginInfo.fs" />
     <Compile Include="Mirage/Core/Logger.fs" />
+    <Compile Include="Mirage/Core/File.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
     <Compile Include="Mirage/Core/Audio/Network/Stream.fs" />
