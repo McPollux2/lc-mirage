@@ -80,12 +80,12 @@
     <Compile Include="Mirage/Core/File.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
-    <Compile Include="Mirage/Core/Audio/Network/Stream.fs" />
-    <Compile Include="Mirage/Core/Audio/Network/Server.fs" />
-    <Compile Include="Mirage/Core/Audio/Network/Client.fs" />
+    <Compile Include="Mirage/Core/Audio/Stream.fs" />
     <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
-    <Compile Include="Mirage/Unity/AudioStream.fs" />
-    <Compile Include="Mirage/Unity/ImitatePlayer.fs" />
+    <Compile Include="Mirage/Unity/Audio/Client.fs" />
+    <Compile Include="Mirage/Unity/Audio/Server.fs" />
+    <Compile Include="Mirage/Unity/Audio/Component.fs" />
+    <Compile Include="Mirage/Unity/Imitation/Component.fs" />
     <Compile Include="Mirage/Patch/InitializePrefab.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Netcode.fs" />

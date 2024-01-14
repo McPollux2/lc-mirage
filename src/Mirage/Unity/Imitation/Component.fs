@@ -14,12 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Unity.ImitatePlayer
+module Mirage.Unity.Imitation.Component
 
-open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
+open System.Threading.Tasks
 open GameNetcodeStuff
 open Unity.Netcode
+open Cysharp.Threading.Tasks
 open Mirage.Core.Getter
+open Mirage.Core.Logger
 
 let get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -35,6 +37,14 @@ type ImitatePlayer() =
     let getEnemy = get Enemy "Enemy"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
+    let rec runImitationLoop () =
+        task {
+            do! Task.Delay 1000
+            logInfo "Imitating player"
+            return! runImitationLoop();
+        }
+
     member this.Start() =
         if this.IsHost then
             Enemy.Value <- Some <| this.gameObject.GetComponent<MaskedPlayerEnemy>()
+            runImitationLoop().AsUniTask().Forget()

@@ -23,8 +23,8 @@ open Unity.Netcode
 open UnityEngine
 open System.Threading.Tasks
 open Mirage.Core.Logger
-open Mirage.Unity.Audio.AudioStream
-open Mirage.Unity.ImitatePlayer
+open Mirage.Unity.Audio.Component
+open Mirage.Unity.Imitation.Component
 
 type InitializePrefab() =
     static let mutable miragePrefab = None

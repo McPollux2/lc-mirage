@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Core.Audio.Network.Server
+module Mirage.Unity.Audio.Server
 
 open NAudio.Wave
 open FSharpPlus
@@ -24,7 +24,7 @@ open System.Threading
 open Cysharp.Threading.Tasks
 open Mirage.Core.Audio.Data
 open Mirage.Core.Logger
-open Mirage.Core.Audio.Network.Stream
+open Mirage.Core.Audio.Stream
 
 // The amount of time the channel should block before it exits.
 let [<Literal>] ChannelTimeout = 30_000 // 30 seconds.
