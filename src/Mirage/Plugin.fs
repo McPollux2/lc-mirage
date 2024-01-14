@@ -17,10 +17,12 @@
 namespace Mirage
 
 open BepInEx
+open FSharpPlus
 open HarmonyLib
 open Netcode
 open Mirage.PluginInfo
 open Mirage.Patch.InitializePrefab
+open Mirage.Patch.RecordAudio
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -29,4 +31,8 @@ type Plugin() =
     member _.Awake() =
         initNetcodePatcher()
         let harmony = new Harmony(pluginId)
-        harmony.PatchAll(typeof<InitializePrefab>)
+        let patch (``type``: System.Type) = harmony.PatchAll(``type``)
+        iter patch
+            [   typeof<InitializePrefab>
+                typeof<RecordAudio>
+            ]

@@ -24,6 +24,9 @@
     <Reference Include="BepInEx">
       <HintPath>../lib/BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="DissonanceVoip">
+      <HintPath>../lib/DissonanceVoip.dll</HintPath>
+    </Reference>
     <Reference Include="Facepunch.Steamworks.Win64.dll">
       <HintPath>../lib/Facepunch.Steamworks.Win64.dll</HintPath>
     </Reference>
@@ -81,6 +84,7 @@
     <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
     <Compile Include="Mirage/Unity/AudioStream.fs" />
     <Compile Include="Mirage/Patch/InitializePrefab.fs" />
+    <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Netcode.fs" />
     <Compile Include="Properties/AssemblyInfo.fs" />
     <Compile Include="Mirage/Plugin.fs" />
