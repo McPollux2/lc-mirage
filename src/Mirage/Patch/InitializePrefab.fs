@@ -21,9 +21,10 @@ open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
 open UnityEngine
+open System.Threading.Tasks
 open Mirage.Core.Logger
 open Mirage.Unity.Audio.AudioStream
-open System.Threading.Tasks
+open Mirage.Unity.ImitatePlayer
 
 type InitializePrefab() =
     static let mutable miragePrefab = None
@@ -35,15 +36,17 @@ type InitializePrefab() =
     static member RemoveAnnoyingLogs (message: obj) =
         if message :? string then
             let m = message :?> string
-            message :? string &&
-            not (m.StartsWith("Looking at fo") || m.StartsWith("Look rotation viewing") || m.StartsWith("STARTING AI") || m.StartsWith("Setting zap mode"))
+            not (
+                message :? string &&
+                    m.StartsWith("Looking at fo") || m.StartsWith("Look rotation viewing") || m.StartsWith("STARTING AI") || m.StartsWith("Setting zap mode")
+            )
         else
             true
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``register network prefab``(__instance: GameNetworkManager) =
-        handleError <| monad' {
+        handleResult <| monad' {
             logInfo "Initializing network prefab."
             let networkPrefabs = __instance.GetComponent<NetworkManager>().NetworkConfig.Prefabs.m_Prefabs
             let isMaskedPrefab (networkPrefab: NetworkPrefab) =
@@ -57,7 +60,9 @@ type InitializePrefab() =
             prefab.enemyType.enemyName <- "Mirage"
             prefab.enemyType.isDaytimeEnemy <- true
             prefab.enemyType.isOutsideEnemy <- true
-            ignore <| prefab.gameObject.AddComponent<AudioStream>()
+            let addComponent = ignore << prefab.gameObject.AddComponent
+            addComponent typeof<AudioStream>
+            addComponent typeof<ImitatePlayer>
             miragePrefab <- Some prefab
             logInfo "Finished initializing network prefab."
         }
@@ -65,7 +70,7 @@ type InitializePrefab() =
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "Start")>]
     static member ``register prefab to spawn list``(__instance: StartOfRound) =
-        handleError <| monad' {
+        handleResult <| monad' {
             let networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>()
             if networkManager.IsHost then
                 logInfo "Registering prefab to spawn list."
@@ -88,7 +93,7 @@ type InitializePrefab() =
                         while not __instance.allPlayersDead do
                             let enemyFilter (enemy: EnemyAI) : Option<MaskedPlayerEnemy> =
                                 match enemy with
-                                    | :? MaskedPlayerEnemy as maskedEnemy -> Some maskedEnemy
+                                    | :? MaskedPlayerEnemy as enemy -> Some enemy
                                     | _ -> None
                             let mirageEnemies = 
                                 List.ofSeq roundManager.SpawnedEnemies

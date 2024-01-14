@@ -23,12 +23,14 @@ open Unity.Netcode
 open Cysharp.Threading.Tasks
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
 open Mirage.Core.Logger
+open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
 open Mirage.Core.Audio.Network.Server
 open Mirage.Core.Audio.Network.Client
 open Mirage.Unity.NetworkBehaviour
 
 let [<Literal>] ClientTimeout = 30<second>
+let get<'A> : Getter<'A> = getter "AudioStream"
 
 /// <summary>
 /// A component that allows an entity to stream audio to a client, playing the audio back live.
@@ -36,24 +38,28 @@ let [<Literal>] ClientTimeout = 30<second>
 type AudioStream() =
     inherit NetworkBehaviour()
 
-    let mutable audioSource: Option<AudioSource> = None
-    let mutable audioServer: Option<AudioServer> = None
-    let mutable audioClient: Option<AudioClient> = None
+    let mutable AudioSource: ref<Option<AudioSource>> = ref None
+    let mutable AudioServer: ref<Option<AudioServer>> = ref None
+    let mutable AudioClient: ref<Option<AudioClient>> = ref None
+
+    let getAudioSource = get AudioSource "AudioSource"
+    let getAudioServer = get AudioServer "AudioServer"
+    let getAudioClient = get AudioClient "AudioClient"
 
     let stopAudioServer() =
-        iter stopServer audioServer
-        audioServer <- None
+        iter stopServer AudioServer.Value
+        AudioServer <- ref None
 
     let stopAudioClient() =
-        iter stopClient audioClient
-        audioClient <- None
+        iter stopClient AudioClient.Value
+        AudioClient.Value <- None
 
     let stopAll () =
         stopAudioServer()
         stopAudioClient()
 
     member this.Awake() =
-        audioSource <- Some <| this.gameObject.AddComponent<AudioSource>()
+        AudioSource <- ref << Some <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() = stopAll()
 
@@ -61,7 +67,7 @@ type AudioStream() =
     /// Whether the server is is running or not (broadcasting audio to clients).<br />
     /// This can only be invoked by the host.
     /// </summary>
-    member _.IsServerRunning() = fold (konst isRunning) false audioServer
+    member _.IsServerRunning() = fold (konst isRunning) false AudioServer.Value
 
     /// <summary>
     /// Stream the given audio file to all clients. This can only be invoked by the host.
@@ -70,7 +76,7 @@ type AudioStream() =
         if not this.IsHost then invalidOp "This method can only be invoked by the host."
         stopAudioServer()
         let audioReader = new Mp3FileReader(filePath)
-        audioServer <- Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
+        AudioServer <- ref << Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
         this.InitializeAudioClientRpc <| getPcmHeader audioReader
 
     /// <summary>
@@ -78,15 +84,12 @@ type AudioStream() =
     /// </summary>
     [<ClientRpc>]
     member this.InitializeAudioClientRpc(pcmHeader: PcmHeader) =
-        handleErrorWith stopAll <| monad' {
+        handleResultWith stopAll <| monad' {
             if not this.IsHost then
                 stopAudioClient()
-                let! source =
-                    Option.toResultWith
-                        "AudioSource has not been initialized yet. This is unexpected, as it should be initialized in AudioStream#Awake."
-                        audioSource
-                let client = startClient source pcmHeader
-                audioClient <- Some client
+                let! audioSource = getAudioSource "InitializeAudioClientRpc"
+                let client = startClient audioSource pcmHeader
+                AudioClient.Value <- Some client
                 startTimeout client ClientTimeout
                     |> _.AsUniTask().Forget()
                 this.InitializeAudioServerRpc <| new ServerRpcParams()
@@ -97,13 +100,10 @@ type AudioStream() =
     /// </summary>
     [<ServerRpc(RequireOwnership = false)>]
     member this.InitializeAudioServerRpc(serverParams: ServerRpcParams) =
-        handleErrorWith stopAll <| monad' {
+        handleResultWith stopAll <| monad' {
             if this.IsHost && isValidClient this serverParams then
-                let! server =
-                    Option.toResultWith
-                        "AudioStream#InitializeAudioServerRpc was called while AudioServer has not started yet."
-                        audioServer
-                broadcastAudio server
+                let! audioServer = getAudioServer "InitializeAudioServerRpc"
+                broadcastAudio audioServer
         }
 
     /// <summary>
@@ -111,13 +111,10 @@ type AudioStream() =
     /// </summary>
     [<ClientRpc(Delivery = RpcDelivery.Unreliable)>]
     member this.SendFrameClientRpc(frameData: FrameData) =
-        handleError <| monad' {
+        handleResult <| monad' {
             if not this.IsHost then
-                let! client =
-                    Option.toResultWith
-                        "AudioStream#SendFrameClientRpc was called while AudioClient has not started yet."
-                        audioClient
-                setFrameData client frameData 
+                let! audioClient = getAudioClient "SendFrameClientRpc"
+                setFrameData audioClient frameData 
         }
 
     /// <summary>
@@ -125,4 +122,4 @@ type AudioStream() =
     /// This disables the client timeout to allow it to continue playing all the audio it already has.
     /// </summary>
     [<ClientRpc>]
-    member _.FinishAudioClientRpc() = iter stopTimeout audioClient
+    member _.FinishAudioClientRpc() = iter stopTimeout AudioClient.Value

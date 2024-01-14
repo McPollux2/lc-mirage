@@ -29,7 +29,7 @@ let internal logError (message: string) = logger.LogError message
 /// <summary>
 /// If the program results in an error, this function logs the error without rethrowing it.
 /// </summary>
-let handleErrorWith (onError: Unit -> Unit) (program: Result<Unit, string>) : Unit =
+let handleResultWith (onError: Unit -> Unit) (program: Result<Unit, string>) : Unit =
     match program with
         | Ok _ -> ()
         | Error message ->
@@ -39,4 +39,4 @@ let handleErrorWith (onError: Unit -> Unit) (program: Result<Unit, string>) : Un
 /// <summary>
 /// If the program results in an error, this function logs the error without rethrowing it.
 /// </summary>
-let handleError : Result<Unit,string> -> Unit = handleErrorWith id
+let handleResult : Result<Unit, string> -> Unit = handleResultWith id

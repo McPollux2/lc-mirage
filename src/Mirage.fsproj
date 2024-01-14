@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="Mirage/PluginInfo.fs" />
     <Compile Include="Mirage/Core/Logger.fs" />
+    <Compile Include="Mirage/Core/Getter.fs" />
     <Compile Include="Mirage/Core/File.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
@@ -84,6 +85,7 @@
     <Compile Include="Mirage/Core/Audio/Network/Client.fs" />
     <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
     <Compile Include="Mirage/Unity/AudioStream.fs" />
+    <Compile Include="Mirage/Unity/ImitatePlayer.fs" />
     <Compile Include="Mirage/Patch/InitializePrefab.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Netcode.fs" />

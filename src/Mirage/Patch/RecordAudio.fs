@@ -17,18 +17,17 @@
 module Mirage.Patch.RecordAudio
 
 open System;
+open System.IO
+open HarmonyLib
+open Dissonance.Audio.Playback
+open Dissonance.Audio
+open Module.Core.File
+open Mirage.Core.Logger
 
 /// <summary>
 /// The directory to save audio files in.
 /// </summray>
 let [<Literal>] SaveDirectory = "mirage"
-
-open HarmonyLib
-open Dissonance.Audio.Playback
-open Dissonance.Audio
-open System.IO
-open Module.Core.File
-open Mirage.Core.Logger
 
 type RecordAudio() =
     static let mutable isHost = false

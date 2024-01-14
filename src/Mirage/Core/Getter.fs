@@ -14,25 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-namespace Mirage
+module Mirage.Core.Getter
 
-open System
-open BepInEx
 open FSharpPlus
-open HarmonyLib
-open Netcode
-open Mirage.PluginInfo
-open Mirage.Patch.InitializePrefab
-open Mirage.Patch.RecordAudio
 
-[<BepInPlugin(pluginName, pluginId, pluginVersion)>]
-type Plugin() =
-    inherit BaseUnityPlugin()
+/// <summary>
+/// A convenience type to make it simpler to create field getters.
+/// </summary>
+type Getter<'A> = ref<Option<'A>> -> string -> string -> Result<'A, string>
 
-    member _.Awake() =
-        initNetcodePatcher()
-        let harmony = new Harmony(pluginId)
-        iter (unbox<Type> >> harmony.PatchAll) 
-            [   typeof<InitializePrefab>
-                typeof<RecordAudio>
-            ]
+/// <summary>
+/// Create a getter for an optional field, providing an error message if retrieving the value fails.
+/// </summary>
+let getter<'A> (className: string) (field: ref<Option<'A>>) (fieldName: string) (methodName: string) : Result<'A, string> =
+    Option.toResultWith
+        $"{className}#{methodName} was called while {fieldName} has not been initialized yet."
+        field.Value
