@@ -30,7 +30,7 @@ open Mirage.Core.Audio.Data
 open Mirage.Unity.NetworkBehaviour
 
 let [<Literal>] ClientTimeout = 30<second>
-let get<'A> : Getter<'A> = getter "AudioStream"
+let private get<'A> : Getter<'A> = getter "AudioStream"
 
 /// <summary>
 /// A component that allows an entity to stream audio to a client, playing the audio back live.
@@ -38,9 +38,9 @@ let get<'A> : Getter<'A> = getter "AudioStream"
 type AudioStream() =
     inherit NetworkBehaviour()
 
-    let mutable AudioSource: ref<Option<AudioSource>> = ref None
-    let mutable AudioServer: ref<Option<AudioServer>> = ref None
-    let mutable AudioClient: ref<Option<AudioClient>> = ref None
+    let AudioSource: ref<Option<AudioSource>> = ref None
+    let AudioServer: ref<Option<AudioServer>> = ref None
+    let AudioClient: ref<Option<AudioClient>> = ref None
 
     let getAudioSource = get AudioSource "AudioSource"
     let getAudioServer = get AudioServer "AudioServer"
@@ -48,7 +48,7 @@ type AudioStream() =
 
     let stopAudioServer() =
         iter stopServer AudioServer.Value
-        AudioServer <- ref None
+        AudioServer.Value <- None
 
     let stopAudioClient() =
         iter stopClient AudioClient.Value
@@ -59,7 +59,7 @@ type AudioStream() =
         stopAudioClient()
 
     member this.Awake() =
-        AudioSource <- ref << Some <| this.gameObject.AddComponent<AudioSource>()
+        AudioSource.Value <- Some <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() = stopAll()
 
@@ -76,7 +76,7 @@ type AudioStream() =
         if not this.IsHost then invalidOp "This method can only be invoked by the host."
         stopAudioServer()
         let audioReader = new Mp3FileReader(filePath)
-        AudioServer <- ref << Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
+        AudioServer.Value <- Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
         this.InitializeAudioClientRpc <| getPcmHeader audioReader
 
     /// <summary>

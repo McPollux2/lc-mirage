@@ -14,26 +14,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Patch.InitializePrefab
+module Mirage.Patch.NetworkPrefab
 
 open Cysharp.Threading.Tasks
 open FSharpPlus
 open HarmonyLib
+open System.Threading.Tasks
 open Unity.Netcode
 open UnityEngine
-open System.Threading.Tasks
 open Mirage.Core.Logger
 open Mirage.Unity.Audio.Component
 open Mirage.Unity.Imitation.Component
+open Mirage.Core.Getter
 
-type InitializePrefab() =
-    static let mutable miragePrefab = None
-    static let getMiragePrefab () = Option.toResultWith "Mirage prefab has not been initialized yet." miragePrefab
+/// <summary>
+/// Find the network prefab, specified by the generic parameter.
+/// </summary>
+let findNetworkPrefab<'A> (manager: GameNetworkManager) : Option<NetworkPrefab> =
+    let networkManager = manager.GetComponent<NetworkManager>()
+    let networkPrefabs = networkManager.NetworkConfig.Prefabs.m_Prefabs
+    let isTargetPrefab (networkPrefab: NetworkPrefab) =
+        not << isNull <| networkPrefab.Prefab.GetComponent typeof<'A>
+    List.tryFind isTargetPrefab <| List.ofSeq networkPrefabs
+
+type RegisterPrefab() =
+    static let MiragePrefab = ref None
+    static let getMiragePrefab = getter "InitializePrefab" MiragePrefab "MiragePrefab"
 
     // TODO: Remove this.
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<Debug>, "Log", [| typeof<obj> |])>]
-    static member RemoveAnnoyingLogs (message: obj) =
+    static member RemoveAnnoyingLogs(message: obj) =
         if message :? string then
             let m = message :?> string
             not (
@@ -47,24 +58,18 @@ type InitializePrefab() =
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``register network prefab``(__instance: GameNetworkManager) =
         handleResult <| monad' {
-            logInfo "Initializing network prefab."
-            let networkPrefabs = __instance.GetComponent<NetworkManager>().NetworkConfig.Prefabs.m_Prefabs
-            let isMaskedPrefab (networkPrefab: NetworkPrefab) =
-                not << isNull <| networkPrefab.Prefab.GetComponent<MaskedPlayerEnemy>()
-            let errorMessage = "MaskedPlayerEnemy network prefab could not be found. This is probably due to mod incompatibility."
-            let! networkPrefab =
-                List.ofSeq networkPrefabs
-                    |> List.tryFind isMaskedPrefab
-                    |> Option.toResultWith errorMessage
+            let! networkPrefab = 
+                findNetworkPrefab<MaskedPlayerEnemy> __instance
+                    |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
             let prefab = networkPrefab.Prefab.GetComponent<MaskedPlayerEnemy>()
             prefab.enemyType.enemyName <- "Mirage"
             prefab.enemyType.isDaytimeEnemy <- true
             prefab.enemyType.isOutsideEnemy <- true
-            let addComponent = ignore << prefab.gameObject.AddComponent
-            addComponent typeof<AudioStream>
-            addComponent typeof<ImitatePlayer>
-            miragePrefab <- Some prefab
-            logInfo "Finished initializing network prefab."
+            iter (prefab.gameObject.AddComponent >> ignore)
+                [   typeof<AudioStream>
+                    typeof<ImitatePlayer>
+                ]
+            MiragePrefab.Value <- Some prefab
         }
 
     [<HarmonyPostfix>]
@@ -73,18 +78,16 @@ type InitializePrefab() =
         handleResult <| monad' {
             let networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>()
             if networkManager.IsHost then
-                logInfo "Registering prefab to spawn list."
-                let! prefab = getMiragePrefab()
+                let! miragePrefab = getMiragePrefab "``register prefab to spawn list``"
                 let prefabExists enemy = enemy.GetType() = typeof<MaskedPlayerEnemy>
                 let registerPrefab (level: SelectableLevel) =
                     let spawnable = new SpawnableEnemyWithRarity()
-                    spawnable.enemyType <- prefab.enemyType
-                    spawnable.rarity <- 100 // TODO: Make this reasonable.
+                    spawnable.enemyType <- miragePrefab.enemyType
+                    spawnable.rarity <- 0
                     level.Enemies.Add spawnable
                 flip iter (__instance.levels) <| fun level ->
-                    if not <| prefabExists level.Enemies then
+                    if not <| exists prefabExists level.Enemies then
                         registerPrefab level
-                logInfo "Finished registering prefab to spawn list."
             
                 // TODO: Remove everything below this.
                 let roundManager = UnityEngine.Object.FindObjectOfType<RoundManager>()

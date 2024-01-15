@@ -22,8 +22,9 @@ open FSharpPlus
 open HarmonyLib
 open Netcode
 open Mirage.PluginInfo
-open Mirage.Patch.InitializePrefab
 open Mirage.Patch.RecordAudio
+open Mirage.Patch.SpawnMirage
+open Mirage.Patch.NetworkPrefab
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -33,6 +34,7 @@ type Plugin() =
         initNetcodePatcher()
         let harmony = new Harmony(pluginId)
         iter (unbox<Type> >> harmony.PatchAll) 
-            [   typeof<InitializePrefab>
+            [   typeof<RegisterPrefab>
                 typeof<RecordAudio>
+                typeof<SpawnMirage>
             ]

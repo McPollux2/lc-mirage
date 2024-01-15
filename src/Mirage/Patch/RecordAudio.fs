@@ -24,13 +24,10 @@ open Dissonance.Audio
 open Module.Core.File
 open Mirage.Core.Logger
 
-/// <summary>
-/// The directory to save audio files in.
-/// </summray>
-let [<Literal>] SaveDirectory = "mirage"
-
 type RecordAudio() =
     static let mutable isHost = false
+
+    // TODO: Filter out only alive players.
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<StartOfRound>, "Awake")>]

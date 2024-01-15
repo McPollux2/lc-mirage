@@ -23,14 +23,11 @@
  *)
 module Mirage.Netcode
 
+open FSharpPlus
 open System.Reflection
 open UnityEngine
-open FSharpPlus
 
-let [<Literal>] private flags =
-    BindingFlags.NonPublic
-        ||| BindingFlags.Instance
-        ||| BindingFlags.Static
+let [<Literal>] private flags = BindingFlags.NonPublic ||| BindingFlags.Instance ||| BindingFlags.Static
 
 let private invokeMethod (method: MethodInfo) =
     let attributes = method.GetCustomAttributes(typeof<RuntimeInitializeOnLoadMethodAttribute>, false)
@@ -41,7 +38,4 @@ let private invokeMethod (method: MethodInfo) =
 /// This must be run once (and only once) on plugin startup for the netcode patcher to work.<br />
 /// See: https://github.com/EvaisaDev/UnityNetcodePatcher/tree/c64eb86e74e85e1badc442adc0bf270bab0df6b6#preparing-mods-for-patching
 /// </summary>
-let initNetcodePatcher () =
-    Assembly.GetExecutingAssembly().GetTypes()
-        >>= _.GetMethods(flags)
-        |> iter invokeMethod
+let initNetcodePatcher () = Assembly.GetExecutingAssembly().GetTypes() >>= _.GetMethods(flags) |> iter invokeMethod

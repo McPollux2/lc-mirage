@@ -16,6 +16,8 @@
  *)
 module Mirage.Unity.Imitation.Component
 
+#nowarn "40"
+
 open FSharpPlus
 open GameNetcodeStuff
 open Unity.Netcode
@@ -24,7 +26,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Async
 open System.Threading
 
-let get<'A> : Getter<'A> = getter "ImitatePlayer"
+let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.
