@@ -16,12 +16,13 @@
  *)
 module Mirage.Unity.Imitation.Component
 
-open System.Threading.Tasks
+open FSharpPlus
 open GameNetcodeStuff
 open Unity.Netcode
-open Cysharp.Threading.Tasks
 open Mirage.Core.Getter
 open Mirage.Core.Logger
+open Mirage.Core.Async
+open System.Threading
 
 let get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -31,20 +32,28 @@ let get<'A> : Getter<'A> = getter "ImitatePlayer"
 type ImitatePlayer() =
     inherit NetworkBehaviour()
 
+    let canceller = new CancellationTokenSource()
+
     let Enemy: ref<Option<MaskedPlayerEnemy>> = ref None
     let ImitatedPlayer: ref<Option<PlayerControllerB>> = ref None
     
     let getEnemy = get Enemy "Enemy"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
-    let rec runImitationLoop () =
-        task {
-            do! Task.Delay 1000
+    let rec runImitationLoop : Async<Unit> =
+        async {
+            return! Async.Sleep 1000
             logInfo "Imitating player"
-            return! runImitationLoop();
+            return! runImitationLoop;
         }
 
     member this.Start() =
         if this.IsHost then
             Enemy.Value <- Some <| this.gameObject.GetComponent<MaskedPlayerEnemy>()
-            runImitationLoop().AsUniTask().Forget()
+            toUniTask_ canceller.Token runImitationLoop
+
+    override this.OnDestroy() =
+        if this.IsHost then
+            logInfo "onDestroy called on ImitatePlayer"
+            canceller.Cancel()
+            dispose canceller

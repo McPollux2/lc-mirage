@@ -21,10 +21,10 @@ open FSharpPlus
 open FSharpx.Control
 open System
 open System.Threading
-open Cysharp.Threading.Tasks
 open Mirage.Core.Audio.Data
 open Mirage.Core.Logger
 open Mirage.Core.Audio.Stream
+open Mirage.Core.Async
 
 // The amount of time the channel should block before it exits.
 let [<Literal>] ChannelTimeout = 30_000 // 30 seconds.
@@ -103,11 +103,9 @@ let broadcastAudio (server: AudioServer) : Unit =
 
     // Start the consumer in the current thread.
     try
-        let toTask async = Async.StartImmediateAsTask(async, server.canceller.Token)
         server.channel.AsyncGet ChannelTimeout
             >>= consumer
-            |> toTask
-            |> _.AsUniTask().Forget()
+            |> toUniTask_ server.canceller.Token
     with | error ->
         logError $"AudioServer consumer caught an exception: {error}"
         stopServer server
