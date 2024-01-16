@@ -21,7 +21,7 @@ open System.IO
 open HarmonyLib
 open Dissonance.Audio.Playback
 open Dissonance.Audio
-open Module.Core.File
+open Mirage.Core.File
 open Mirage.Core.Logger
 
 type RecordAudio() =

@@ -18,8 +18,10 @@ module Mirage.Core.Audio.Format
 
 open FSharpPlus
 open NAudio.Wave
+open NAudio.Lame
 open System
 open System.IO
+open Mirage.Core.Logger
 
 let private decompressFrame (decompressor: IMp3FrameDecompressor) frame =
     let samples = Array.zeroCreate <| 16384 * 4 // Large enough buffer for a single frame.
@@ -35,6 +37,17 @@ let private normalizeSamples (bytesDecompressed, samples) =
 /// Converts the given MP3 frame data to PCM format.
 /// Note: This function <i>will</i> throw an exception if invalid bytes are provided.
 /// </summary>
-let convertToPCM (decompressor: IMp3FrameDecompressor) (frameData: array<byte>) : array<float32> =
+let convertFrameToPCM (decompressor: IMp3FrameDecompressor) (frameData: array<byte>) : array<float32> =
     use stream = new MemoryStream(frameData)
     normalizeSamples << decompressFrame decompressor <| Mp3Frame.LoadFromStream stream
+
+/// <summary>
+/// Convert the given <b>.wav</b> audio file to a <b>.mp3</b> in-memory.<br />
+/// Warning: You will need to call <b>Mp3FileReader#Dispose</b> and <b>Mp3fileReader#mp3Stream#Dispose</b> yourself.
+/// </summary>
+let convertToMp3 (audioReader: WaveFileReader) : Mp3FileReader =
+    let mp3Stream = new MemoryStream()
+    use mp3Writer = new LameMP3FileWriter(mp3Stream, audioReader.WaveFormat, LAMEPreset.ABR_128)
+    audioReader.CopyTo mp3Writer
+    mp3Stream.Position <- 0
+    new Mp3FileReader(mp3Stream)

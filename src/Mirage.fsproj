@@ -39,6 +39,9 @@
     <Reference Include="NAudio.WinMM">
       <HintPath>../lib/NAudio.WinMM.dll</HintPath>
     </Reference>
+    <Reference Include="NAudio.Lame">
+      <HintPath>../lib/NAudio.Lame.dll</HintPath>
+    </Reference>
     <Reference Include="UniTask.Addressables">
       <HintPath>../lib/UniTask.Addressables.dll</HintPath>
     </Reference>

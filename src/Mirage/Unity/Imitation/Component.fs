@@ -16,15 +16,15 @@
  *)
 module Mirage.Unity.Imitation.Component
 
-#nowarn "40"
-
 open FSharpPlus
 open GameNetcodeStuff
 open Unity.Netcode
+open System.Threading
+open Mirage.Core.File
 open Mirage.Core.Getter
 open Mirage.Core.Logger
 open Mirage.Core.Async
-open System.Threading
+open Mirage.Unity.Audio.Component
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -42,17 +42,24 @@ type ImitatePlayer() =
     let getEnemy = get Enemy "Enemy"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
-    let rec runImitationLoop : Async<Unit> =
+    let rec runImitationLoop (this: ImitatePlayer) : Async<Unit> =
         async {
             return! Async.Sleep 1000
-            logInfo "Imitating player"
-            return! runImitationLoop;
+            //logInfo "Imitating player"
+            let audioStream = this.GetComponent<AudioStream>()
+            if not <| audioStream.IsServerRunning() then
+                logInfo $"Starting new audio."
+                logInfo "Streaming audio"
+                audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
+                logInfo "streaming audio"
+                //do! Async.Sleep 200
+            //return! runImitationLoop;
         }
 
     member this.Start() =
         if this.IsHost then
             Enemy.Value <- Some <| this.gameObject.GetComponent<MaskedPlayerEnemy>()
-            toUniTask_ canceller.Token runImitationLoop
+            toUniTask_ canceller.Token <| runImitationLoop this
 
     override this.OnDestroy() =
         if this.IsHost then

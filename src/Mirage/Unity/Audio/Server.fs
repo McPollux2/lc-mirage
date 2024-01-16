@@ -50,6 +50,7 @@ let stopServer (server: AudioServer) =
         server.stopped <- true
         server.canceller.Cancel()
         dispose server.canceller
+        dispose server.audioReader.mp3Stream
         dispose server.audioReader
         dispose server.channel
         server.onFinish()

@@ -87,7 +87,7 @@ let startClient (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioClient 
 /// </summary>
 let setFrameData (client: AudioClient) (frameData: FrameData) =
     try
-        let pcmData = convertToPCM client.decompressor frameData.rawData
+        let pcmData = convertFrameToPCM client.decompressor frameData.rawData
         if pcmData.Length > 0 then
             ignore <| client.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
         if not client.audioSource.isPlaying then

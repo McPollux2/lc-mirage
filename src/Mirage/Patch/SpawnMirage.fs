@@ -35,7 +35,6 @@ type SpawnMirage() =
             let! maskItemPrefab =
                 findNetworkPrefab<HauntedMaskItem> __instance
                     |> Option.toResultWith "HauntedMaskItem network prefab is missing. This is likely due to a mod incompatibility."
-
             MaskItemPrefab.Value <- Some maskItemPrefab
         }
 
@@ -44,8 +43,7 @@ type SpawnMirage() =
     static member ``spawn mirage enemy on player death``(__instance: PlayerControllerB) =
         handleResult <| monad' {
             if __instance.IsHost then
-                let methodName = "``spawn mirage enemy on player death``"
-                let! maskItemPrefab = getMaskItemPrefab methodName
+                let! maskItemPrefab = getMaskItemPrefab "``spawn mirage enemy on player death``"
                 let clone =
                     UnityEngine.Object.Instantiate<GameObject>(
                         maskItemPrefab.Prefab,

@@ -21,7 +21,9 @@ open BepInEx
 open FSharpPlus
 open HarmonyLib
 open Netcode
+open NAudio.Lame
 open Mirage.PluginInfo
+open Mirage.Core.File
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
@@ -32,6 +34,7 @@ type Plugin() =
 
     member _.Awake() =
         initNetcodePatcher()
+        ignore <| LameDLL.LoadNativeDLL $"{RootDirectory}/BepInEx/plugins/"
         let harmony = new Harmony(pluginId)
         iter (unbox<Type> >> harmony.PatchAll) 
             [   typeof<RegisterPrefab>

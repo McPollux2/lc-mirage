@@ -28,6 +28,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
 open Mirage.Unity.NetworkBehaviour
+open Mirage.Core.Audio.Format
 
 let [<Literal>] ClientTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"
@@ -75,7 +76,8 @@ type AudioStream() =
     member this.StreamAudioFromFile(filePath: string) =
         if not this.IsHost then invalidOp "This method can only be invoked by the host."
         stopAudioServer()
-        let audioReader = new Mp3FileReader(filePath)
+        use input = new WaveFileReader(filePath)
+        let audioReader = convertToMp3 input
         AudioServer.Value <- Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
         this.InitializeAudioClientRpc <| getPcmHeader audioReader
 
