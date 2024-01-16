@@ -19,7 +19,6 @@ module Mirage.Unity.Audio.Component
 open Server
 open Client
 open FSharpPlus
-open NAudio.Wave
 open UnityEngine
 open Unity.Netcode
 open Cysharp.Threading.Tasks
@@ -28,7 +27,8 @@ open Mirage.Core.Logger
 open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
 open Mirage.Unity.NetworkBehaviour
-open Mirage.Core.Audio.Format
+open System.Threading
+open Mirage.Core.Async
 
 let [<Literal>] ClientTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"
@@ -76,10 +76,12 @@ type AudioStream() =
     member this.StreamAudioFromFile(filePath: string) =
         if not this.IsHost then invalidOp "This method can only be invoked by the host."
         stopAudioServer()
-        use input = new WaveFileReader(filePath)
-        let audioReader = convertToMp3 input
-        AudioServer.Value <- Some <| startServer this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
-        this.InitializeAudioClientRpc <| getPcmHeader audioReader
+        let canceller = new CancellationTokenSource()
+        toUniTask_ canceller.Token <| async {
+            let! (audioServer, pcmHeader) = startServer this.SendFrameClientRpc this.FinishAudioClientRpc filePath
+            AudioServer.Value <- Some audioServer
+            this.InitializeAudioClientRpc pcmHeader
+        }
 
     /// <summary>
     /// Initialize the audio client by sending it the required pcm header.

@@ -25,6 +25,7 @@ open Mirage.Core.Audio.Data
 open Mirage.Core.Logger
 open Mirage.Core.Audio.Stream
 open Mirage.Core.Async
+open Mirage.Core.Audio.Format
 
 // The amount of time the channel should block before it exits.
 let [<Literal>] ChannelTimeout = 30_000 // 30 seconds.
@@ -61,16 +62,27 @@ let stopServer (server: AudioServer) =
 /// <param name="sendFrame">
 /// The RPC method for sending frame data to all clients.
 /// </param>
-/// <param name="audioReader">
-/// Source audio to stream from. Note: This function implicitly disposes the <b>AudioReader</b> when it finishes processing frames.
+/// <param name="filePath">
+/// Source audio to stream from, supporting only <b>.wav</b> audio files.
 /// </param>
-let startServer (sendFrame: FrameData -> Unit) (onFinish: Unit -> Unit) (audioReader: Mp3FileReader) : AudioServer =
-    {   sendFrame = sendFrame
-        onFinish = onFinish
-        audioReader = audioReader
-        channel = new BlockingQueueAgent<Option<FrameData>>(Int32.MaxValue)
-        canceller = new CancellationTokenSource()
-        stopped = false
+let startServer (sendFrame: FrameData -> Unit) (onFinish: Unit -> Unit) (filePath: string) : Async<AudioServer * PcmHeader> =
+    async {
+        let! audioReader =
+            forkReturn <|
+                async {
+                    use waveReader = new WaveFileReader(filePath)
+                    return convertToMp3 waveReader
+                }
+        let server =
+            {   sendFrame = sendFrame
+                onFinish = onFinish
+                audioReader = audioReader
+                channel = new BlockingQueueAgent<Option<FrameData>>(Int32.MaxValue)
+                canceller = new CancellationTokenSource()
+                stopped = false
+            }
+        let pcmHeader = getPcmHeader audioReader
+        return (server, pcmHeader)
     }
 
 /// <summary>
