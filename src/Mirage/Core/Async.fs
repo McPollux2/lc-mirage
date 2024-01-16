@@ -30,7 +30,7 @@ let toUniTask_ (token: CancellationToken) : Async<Unit> -> Unit =
 /// </summary>
 let forkReturn<'A> (program: Async<'A>) : Async<'A> =
     async {
-        let mvar = new BlockingQueueAgent<'A>(1)
-        Async.Start(mvar.AsyncAdd =<< program)
-        return! mvar.AsyncGet()
+        let agent = new BlockingQueueAgent<'A>(1)
+        Async.Start(agent.AsyncAdd =<< program)
+        return! agent.AsyncGet()
     }

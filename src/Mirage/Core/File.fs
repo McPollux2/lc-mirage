@@ -31,4 +31,4 @@ let RootDirectory = $"{Application.dataPath}/../"
 /// <summary>
 /// Get the player's audio recordings directory path.
 /// </summary>
-let getPlayerRecordingsDirectory (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}/"
+let getRecordingsPath (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}/"
