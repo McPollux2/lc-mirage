@@ -21,7 +21,6 @@ open NAudio.Wave
 open NAudio.Lame
 open System
 open System.IO
-open Mirage.Core.Logger
 
 let private decompressFrame (decompressor: IMp3FrameDecompressor) frame =
     let samples = Array.zeroCreate <| 16384 * 4 // Large enough buffer for a single frame.
