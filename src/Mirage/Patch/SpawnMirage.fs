@@ -20,9 +20,9 @@ open FSharpPlus
 open GameNetcodeStuff
 open HarmonyLib
 open NetworkPrefab
+open UnityEngine
 open Mirage.Core.Logger
 open Mirage.Core.Getter
-open UnityEngine
 
 type SpawnMirage() =
     static let MaskItemPrefab = ref None

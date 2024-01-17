@@ -20,7 +20,6 @@ module Mirage.Unity.ImitatePlayer
 
 open FSharpPlus
 open FSharpPlus.Data
-open GameNetcodeStuff
 open Unity.Netcode
 open System
 open System.Threading
@@ -30,6 +29,7 @@ open Mirage.Core.Monad
 open Mirage.Unity.Audio.AudioStream
 open Mirage.Core.Audio.Recording
 open Mirage.Core.File
+open UnityEngine
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -39,26 +39,24 @@ let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 type ImitatePlayer() =
     inherit NetworkBehaviour()
 
-    let random = new Random()
+    let random = new System.Random()
     let canceller = new CancellationTokenSource()
 
     let AudioStream: Ref<Option<AudioStream>> = ref None
-    let ImitatedPlayer: ref<Option<PlayerControllerB>> = ref None
+    let Mirage: Ref<Option<MaskedPlayerEnemy>> = ref None
     
     let getAudioStream = get AudioStream "AudioStream"
-    let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
+    let getMirage = get Mirage "Mirage"
 
     let rec foobar (this: ImitatePlayer) : Async<Unit> =
         async {
-            return! Async.Sleep 1000
-            //logInfo "Imitating player"
             let audioStream = this.GetComponent<AudioStream>()
-            if not <| audioStream.IsServerRunning() then
-                logInfo $"Starting new audio."
-                logInfo "Streaming audio"
-                audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
-                logInfo "streaming audio"
-                //do! Async.Sleep 200
+            logInfo $"Starting new audio."
+            logInfo "Streaming audio"
+            audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
+            logInfo "streaming audio"
+            //do! Async.Sleep 4000
+            //return! foobar this
         }
 
     let rec runImitationLoop : ResultT<Async<Result<Unit, String>>> =
@@ -67,16 +65,20 @@ type ImitatePlayer() =
             let delay = random.Next(1000, 2001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
-            let! imitatedPlayer = liftResult <| getImitatedPlayer methodName
-            iter audioStream.StreamAudioFromFile <| getRandomRecording random imitatedPlayer
+            let! mirage = liftResult <| getMirage methodName
+            iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer
             return! runImitationLoop
         }
 
     member this.Start() =
-        AudioStream.Value <- Some <| this.gameObject.GetComponent<AudioStream>()
+        let audioStream = this.gameObject.GetComponent<AudioStream>()
+        AudioStream.Value <- Some audioStream
+        let audioSource = audioStream.AttachedAudioSource
+        audioSource.spatialBlend <- 1f
+        let lowPassFilter = audioSource.gameObject.AddComponent<AudioLowPassFilter>()
+        lowPassFilter.cutoffFrequency <- 20000f
+        Mirage.Value <- Some <| this.gameObject.GetComponent<MaskedPlayerEnemy>()
         if this.IsHost then
-            let enemy = this.gameObject.GetComponent<MaskedPlayerEnemy>()
-            ImitatedPlayer.Value <- Some enemy.mimickingPlayer
             toUniTask_ canceller.Token <| foobar this
             //runImitationLoop
             //    |> ResultT.run
@@ -85,6 +87,5 @@ type ImitatePlayer() =
 
     override this.OnDestroy() =
         if this.IsHost then
-            logInfo "onDestroy called on ImitatePlayer"
             canceller.Cancel()
             dispose canceller

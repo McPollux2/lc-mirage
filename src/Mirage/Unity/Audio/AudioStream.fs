@@ -75,6 +75,15 @@ type AudioStream() =
     member _.IsServerRunning() = fold (konst isRunning) false AudioServer.Value
 
     /// <summary>
+    /// Get the attached audio source.
+    /// </summary>
+    member _.AttachedAudioSource
+        with get() =
+            match AudioSource.Value with
+                | None -> invalidOp "AudioStream#GetAudioSource called while AudioSource has not been initialized yet."
+                | Some audio -> audio
+
+    /// <summary>
     /// Stream the given audio file to all clients. This can only be invoked by the host.
     /// </summary>
     member this.StreamAudioFromFile(filePath: string) =
