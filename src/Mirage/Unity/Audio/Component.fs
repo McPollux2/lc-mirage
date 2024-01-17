@@ -28,7 +28,7 @@ open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
 open Mirage.Unity.NetworkBehaviour
 open System.Threading
-open Mirage.Core.Async
+open Mirage.Core.Monad
 
 let [<Literal>] ClientTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"

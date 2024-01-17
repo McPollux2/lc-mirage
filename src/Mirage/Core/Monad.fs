@@ -1,10 +1,11 @@
-module Mirage.Core.Async
+module Mirage.Core.Monad
 
 open System.Threading
 open System.Threading.Tasks
 open Cysharp.Threading.Tasks
 open FSharpPlus
 open FSharpx.Control
+open FSharpPlus.Data
 
 /// <summary>
 /// Convert an <b>Async</b> to a <b>Task</b>.
@@ -34,3 +35,9 @@ let forkReturn<'A> (program: Async<'A>) : Async<'A> =
         Async.Start(agent.AsyncAdd =<< program)
         return! agent.AsyncGet()
     }
+
+/// <summary>
+/// Lift a <b>Result</b> into a <b>ResultT</b>.
+/// </summary>
+let inline liftResult (program: Result<'A, 'B>) : ResultT<'``Monad<Result<'A, 'B>>``> =
+    ResultT <| result program

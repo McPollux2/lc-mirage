@@ -24,7 +24,7 @@ open System.Threading
 open Mirage.Core.Audio.Data
 open Mirage.Core.Logger
 open Mirage.Core.Audio.Stream
-open Mirage.Core.Async
+open Mirage.Core.Monad
 open Mirage.Core.Audio.Format
 
 // The amount of time the channel should block before it exits.

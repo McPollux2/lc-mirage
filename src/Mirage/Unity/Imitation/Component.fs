@@ -16,6 +16,8 @@
  *)
 module Mirage.Unity.Imitation.Component
 
+#nowarn "40"
+
 open FSharpPlus
 open GameNetcodeStuff
 open Unity.Netcode
@@ -23,7 +25,7 @@ open System
 open System.Threading
 open Mirage.Core.Getter
 open Mirage.Core.Logger
-open Mirage.Core.Async
+open Mirage.Core.Monad
 open Mirage.Unity.Audio.Component
 open FSharpPlus.Data
 open Mirage.Core.Audio.Recording
@@ -45,15 +47,15 @@ type ImitatePlayer() =
     let getAudioStream = get AudioStream "AudioStream"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
-    let runImitationLoop : Async<Result<Unit, String>> =
-        ResultT.run <| monad' {
+    let rec runImitationLoop : ResultT<Async<Result<Unit, String>>> =
+        monad {
             let methodName = "runImitationLoop"
-            while true do
-                let delay = random.Next(10, 21) * 1000 // Play voice every 10-20 secs
-                return! liftAsync <| Async.Sleep delay
-                let! audioStream = ResultT << result <| getAudioStream methodName
-                let! imitatedPlayer = ResultT << result <| getImitatedPlayer methodName
-                iter audioStream.StreamAudioFromFile <| getRandomRecording random imitatedPlayer
+            let delay = random.Next(10, 21) * 1000 // Play voice every 10-20 secs
+            return! liftAsync <| Async.Sleep delay
+            let! audioStream = liftResult <| getAudioStream methodName
+            let! imitatedPlayer = liftResult <| getImitatedPlayer methodName
+            iter audioStream.StreamAudioFromFile <| getRandomRecording random imitatedPlayer
+            return! runImitationLoop
         }
 
     member this.Start() =
@@ -62,6 +64,7 @@ type ImitatePlayer() =
             let enemy = this.gameObject.GetComponent<MaskedPlayerEnemy>()
             ImitatedPlayer.Value <- Some enemy.mimickingPlayer
             runImitationLoop
+                |> ResultT.run
                 |> map handleResult
                 |> toUniTask_ canceller.Token
 
