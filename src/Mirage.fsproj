@@ -89,8 +89,8 @@
     <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
     <Compile Include="Mirage/Unity/Audio/Client.fs" />
     <Compile Include="Mirage/Unity/Audio/Server.fs" />
-    <Compile Include="Mirage/Unity/Audio/Component.fs" />
-    <Compile Include="Mirage/Unity/Imitation/Component.fs" />
+    <Compile Include="Mirage/Unity/Audio/AudioStream.fs" />
+    <Compile Include="Mirage/Unity/ImitatePlayer.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Patch/NetworkPrefab.fs" />
     <Compile Include="Mirage/Patch/SpawnMirage.fs" />

@@ -23,8 +23,8 @@ open System.Threading.Tasks
 open Unity.Netcode
 open UnityEngine
 open Mirage.Core.Logger
-open Mirage.Unity.Audio.Component
-open Mirage.Unity.Imitation.Component
+open Mirage.Unity.Audio.AudioStream
+open Mirage.Unity.ImitatePlayer
 open Mirage.Core.Getter
 
 /// <summary>

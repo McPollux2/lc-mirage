@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Unity.Imitation.Component
+module Mirage.Unity.ImitatePlayer
 
 #nowarn "40"
 
 open FSharpPlus
+open FSharpPlus.Data
 open GameNetcodeStuff
 open Unity.Netcode
 open System
@@ -26,8 +27,7 @@ open System.Threading
 open Mirage.Core.Getter
 open Mirage.Core.Logger
 open Mirage.Core.Monad
-open Mirage.Unity.Audio.Component
-open FSharpPlus.Data
+open Mirage.Unity.Audio.AudioStream
 open Mirage.Core.Audio.Recording
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
