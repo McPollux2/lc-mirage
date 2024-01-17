@@ -33,10 +33,10 @@ let getRecordings (player: PlayerControllerB) : array<string> =
 /// <summary>
 /// Get the file path of a random recording for the given player (returns <b>None</b> if no recordings exist.
 /// </summary>
-let getRandomRecording (random: Random) (player: PlayerControllerB): option<string> =
+let getRandomRecording (random: Random) (player: PlayerControllerB) : option<string> =
     let recordings = getRecordings player
     if recordings.Length = 0 then None
-    else Some << Array.get recordings <| random.Next(0, recordings.Length)
+    else Some << Array.get recordings <| random.Next recordings.Length
 
 /// <summary>
 /// Create a file path to save the audio recording to.

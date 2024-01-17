@@ -21,6 +21,8 @@ open NAudio.Wave
 open NAudio.Lame
 open System
 open System.IO
+open UnityEngine
+open Mirage.PluginInfo
 
 let private decompressFrame (decompressor: IMp3FrameDecompressor) frame =
     let samples = Array.zeroCreate <| 16384 * 4 // Large enough buffer for a single frame.
@@ -50,3 +52,19 @@ let convertToMp3 (audioReader: WaveFileReader) : Mp3FileReader =
     audioReader.CopyTo mp3Writer
     mp3Stream.Position <- 0
     new Mp3FileReader(mp3Stream)
+
+/// <summary>
+/// Convert the <b>WaveFileReader</b> to an <b>AudioClip</b>.
+/// </summary>
+let convertToAudioClip (audioReader: WaveFileReader) : AudioClip = 
+    let audioData = Array.zeroCreate <| int audioReader.Length
+    let bytesRead = audioReader.Read(audioData, 0, audioData.Length)
+    let samples = Array.zeroCreate bytesRead
+    Buffer.BlockCopy(audioData, 0, samples, 0, bytesRead)
+    AudioClip.Create(
+        pluginId,
+        samples.Length,
+        audioReader.WaveFormat.Channels,
+        audioReader.WaveFormat.SampleRate,
+        false
+    )

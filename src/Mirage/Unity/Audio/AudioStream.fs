@@ -29,6 +29,8 @@ open Mirage.Core.Audio.Data
 open Mirage.Unity.NetworkBehaviour
 open System.Threading
 open Mirage.Core.Monad
+open NAudio.Wave
+open Mirage.Core.Audio.Format
 
 let [<Literal>] ClientTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"
@@ -78,9 +80,25 @@ type AudioStream() =
         stopAudioServer()
         let canceller = new CancellationTokenSource()
         toUniTask_ canceller.Token <| async {
+            // Stream the audio to all clients.
             let! (audioServer, pcmHeader) = startServer this.SendFrameClientRpc this.FinishAudioClientRpc filePath
             AudioServer.Value <- Some audioServer
             this.InitializeAudioClientRpc pcmHeader
+
+            // Play the audio directly for the host.
+            let! audioClip =
+                forkReturn <|
+                    async {
+                        use audioReader = new WaveFileReader(filePath)
+                        return convertToAudioClip audioReader
+                    }
+            handleResult <| monad' {
+                let! audioSource = getAudioSource "StreamAudioFromFile"
+                if audioSource.isPlaying then
+                    audioSource.Stop()
+                audioSource.clip <- audioClip
+                audioSource.Play()
+            }
         }
 
     /// <summary>

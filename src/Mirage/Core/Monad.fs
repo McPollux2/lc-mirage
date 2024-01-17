@@ -26,8 +26,7 @@ let toUniTask_ (token: CancellationToken) : Async<Unit> -> Unit =
     toUniTask token >> _.Forget()
 
 /// <summary>
-/// Run the given program from the async thread pool, and then returns
-/// the value to the caller thread.
+/// Run the given program from the async thread pool, and then return the value to the caller thread.
 /// </summary>
 let forkReturn<'A> (program: Async<'A>) : Async<'A> =
     async {

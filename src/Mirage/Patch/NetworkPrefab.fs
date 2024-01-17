@@ -16,10 +16,8 @@
  *)
 module Mirage.Patch.NetworkPrefab
 
-open Cysharp.Threading.Tasks
 open FSharpPlus
 open HarmonyLib
-open System.Threading.Tasks
 open Unity.Netcode
 open UnityEngine
 open Mirage.Core.Logger
