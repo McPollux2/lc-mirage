@@ -29,7 +29,7 @@ let private decompressFrame (decompressor: IMp3FrameDecompressor) frame =
     let bytesDecompressed = decompressor.DecompressFrame(frame, samples, 0)
     (bytesDecompressed, samples)
 
-let private normalizeSamples (bytesDecompressed, samples) =
+let private normalizeSamples bytesDecompressed samples =
     let pcmData : array<int16> = Array.zeroCreate bytesDecompressed
     Buffer.BlockCopy(samples, 0, pcmData, 0, bytesDecompressed)
     flip (/) 32768.0f << float32 <!> pcmData
@@ -40,7 +40,7 @@ let private normalizeSamples (bytesDecompressed, samples) =
 /// </summary>
 let convertFrameToPCM (decompressor: IMp3FrameDecompressor) (frameData: array<byte>) : array<float32> =
     use stream = new MemoryStream(frameData)
-    normalizeSamples << decompressFrame decompressor <| Mp3Frame.LoadFromStream stream
+    uncurry normalizeSamples << decompressFrame decompressor <| Mp3Frame.LoadFromStream stream
 
 /// <summary>
 /// Convert the given <b>.wav</b> audio file to a <b>.mp3</b> in-memory.<br />
@@ -59,12 +59,13 @@ let convertToMp3 (audioReader: WaveFileReader) : Mp3FileReader =
 let convertToAudioClip (audioReader: WaveFileReader) : AudioClip = 
     let audioData = Array.zeroCreate <| int audioReader.Length
     let bytesRead = audioReader.Read(audioData, 0, audioData.Length)
-    let samples = Array.zeroCreate bytesRead
-    Buffer.BlockCopy(audioData, 0, samples, 0, bytesRead)
-    AudioClip.Create(
+    let samples = normalizeSamples bytesRead audioData
+    let audioClip = AudioClip.Create(
         pluginId,
         samples.Length,
         audioReader.WaveFormat.Channels,
         audioReader.WaveFormat.SampleRate,
         false
     )
+    ignore <| audioClip.SetData(samples, 0)
+    audioClip

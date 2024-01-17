@@ -29,6 +29,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.Audio.AudioStream
 open Mirage.Core.Audio.Recording
+open Mirage.Core.File
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -47,10 +48,23 @@ type ImitatePlayer() =
     let getAudioStream = get AudioStream "AudioStream"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
+    let rec foobar (this: ImitatePlayer) : Async<Unit> =
+        async {
+            return! Async.Sleep 1000
+            //logInfo "Imitating player"
+            let audioStream = this.GetComponent<AudioStream>()
+            if not <| audioStream.IsServerRunning() then
+                logInfo $"Starting new audio."
+                logInfo "Streaming audio"
+                audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
+                logInfo "streaming audio"
+                //do! Async.Sleep 200
+        }
+
     let rec runImitationLoop : ResultT<Async<Result<Unit, String>>> =
         monad {
             let methodName = "runImitationLoop"
-            let delay = random.Next(10, 21) * 1000 // Play voice every 10-20 secs
+            let delay = random.Next(1000, 2001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
             let! imitatedPlayer = liftResult <| getImitatedPlayer methodName
@@ -63,10 +77,11 @@ type ImitatePlayer() =
         if this.IsHost then
             let enemy = this.gameObject.GetComponent<MaskedPlayerEnemy>()
             ImitatedPlayer.Value <- Some enemy.mimickingPlayer
-            runImitationLoop
-                |> ResultT.run
-                |> map handleResult
-                |> toUniTask_ canceller.Token
+            toUniTask_ canceller.Token <| foobar this
+            //runImitationLoop
+            //    |> ResultT.run
+            //    |> map handleResult
+            //    |> toUniTask_ canceller.Token
 
     override this.OnDestroy() =
         if this.IsHost then

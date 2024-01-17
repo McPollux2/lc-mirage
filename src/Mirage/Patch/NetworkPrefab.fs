@@ -46,8 +46,7 @@ type RegisterPrefab() =
         if message :? string then
             let m = message :?> string
             not (
-                message :? string &&
-                    m.StartsWith("Looking at fo") || m.StartsWith("Look rotation viewing") || m.StartsWith("STARTING AI") || m.StartsWith("Setting zap mode")
+                m.StartsWith("Looking at fo") || m.StartsWith("Look rotation viewing") || m.StartsWith("STARTING AI") || m.StartsWith("Setting zap mode")
             )
         else
             true

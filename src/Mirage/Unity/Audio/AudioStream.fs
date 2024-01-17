@@ -58,6 +58,8 @@ type AudioStream() =
         AudioClient.Value <- None
 
     let stopAll () =
+        flip iter AudioSource.Value <| fun audioSource ->
+            UnityEngine.Object.Destroy <| audioSource.clip
         stopAudioServer()
         stopAudioClient()
 
@@ -94,8 +96,8 @@ type AudioStream() =
                     }
             handleResult <| monad' {
                 let! audioSource = getAudioSource "StreamAudioFromFile"
-                if audioSource.isPlaying then
-                    audioSource.Stop()
+                audioSource.Stop()
+                UnityEngine.Object.Destroy <| audioSource.clip
                 audioSource.clip <- audioClip
                 audioSource.Play()
             }
