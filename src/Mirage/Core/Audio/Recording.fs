@@ -21,14 +21,22 @@ let deleteRecordings () =
 /// <summary>
 /// Get the file paths of all recordings for the given player.
 /// </summary>
-let getRecordings (playerAudioId: string) : array<string> =
-    let directory = getRecordingsPath playerAudioId
+let getRecordings (player: PlayerControllerB) : array<string> =
+    let directory = getRecordingsPath player.voicePlayerState.Name
     try
         Directory.GetFiles directory
     with | error ->
         logError $"Failed to load directory: {directory}"
         logError $"{error}"
         zero
+
+/// <summary>
+/// Get the file path of a random recording for the given player (returns <b>None</b> if no recordings exist.
+/// </summary>
+let getRandomRecording (random: Random) (player: PlayerControllerB): option<string> =
+    let recordings = getRecordings player
+    if recordings.Length = 0 then None
+    else Some << Array.get recordings <| random.Next(0, recordings.Length)
 
 /// <summary>
 /// Create a file path to save the audio recording to.

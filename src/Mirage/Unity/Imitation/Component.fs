@@ -19,12 +19,14 @@ module Mirage.Unity.Imitation.Component
 open FSharpPlus
 open GameNetcodeStuff
 open Unity.Netcode
+open System
 open System.Threading
-open Mirage.Core.File
 open Mirage.Core.Getter
 open Mirage.Core.Logger
 open Mirage.Core.Async
 open Mirage.Unity.Audio.Component
+open FSharpPlus.Data
+open Mirage.Core.Audio.Recording
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -34,32 +36,34 @@ let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 type ImitatePlayer() =
     inherit NetworkBehaviour()
 
+    let random = new Random()
     let canceller = new CancellationTokenSource()
 
-    let Enemy: ref<Option<MaskedPlayerEnemy>> = ref None
+    let AudioStream: Ref<Option<AudioStream>> = ref None
     let ImitatedPlayer: ref<Option<PlayerControllerB>> = ref None
     
-    let getEnemy = get Enemy "Enemy"
+    let getAudioStream = get AudioStream "AudioStream"
     let getImitatedPlayer = get ImitatedPlayer "ImitatedPlayer"
 
-    let rec runImitationLoop (this: ImitatePlayer) : Async<Unit> =
-        async {
-            return! Async.Sleep 1000
-            //logInfo "Imitating player"
-            let audioStream = this.GetComponent<AudioStream>()
-            if not <| audioStream.IsServerRunning() then
-                logInfo $"Starting new audio."
-                logInfo "Streaming audio"
-                audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
-                logInfo "streaming audio"
-                //do! Async.Sleep 200
-            //return! runImitationLoop;
+    let runImitationLoop : Async<Result<Unit, String>> =
+        ResultT.run <| monad' {
+            let methodName = "runImitationLoop"
+            while true do
+                let delay = random.Next(10, 21) * 1000 // Play voice every 10-20 secs
+                return! liftAsync <| Async.Sleep delay
+                let! audioStream = ResultT << result <| getAudioStream methodName
+                let! imitatedPlayer = ResultT << result <| getImitatedPlayer methodName
+                iter audioStream.StreamAudioFromFile <| getRandomRecording random imitatedPlayer
         }
 
     member this.Start() =
+        AudioStream.Value <- Some <| this.gameObject.GetComponent<AudioStream>()
         if this.IsHost then
-            Enemy.Value <- Some <| this.gameObject.GetComponent<MaskedPlayerEnemy>()
-            toUniTask_ canceller.Token <| runImitationLoop this
+            let enemy = this.gameObject.GetComponent<MaskedPlayerEnemy>()
+            ImitatedPlayer.Value <- Some enemy.mimickingPlayer
+            runImitationLoop
+                |> map handleResult
+                |> toUniTask_ canceller.Token
 
     override this.OnDestroy() =
         if this.IsHost then
