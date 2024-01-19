@@ -27,8 +27,7 @@ type PlayerManager<'PlayerId when 'PlayerId : comparison> =
     private { players: Map<'PlayerId, PlayerControllerB> }
 
 /// <summary>
-/// Initialize the player manager. This should be called at the start of
-/// a round, when all player scripts are ready (have been added to the list).
+/// Initialize the player manager. This should be called at when all player scripts are ready.
 /// </summary>
 let defaultPlayerManager<'PlayerId when 'PlayerId : comparison> (startOfRound: StartOfRound) (toPlayerId: PlayerControllerB -> 'PlayerId) =
     {   // Since non-connected players have a client id of 0,

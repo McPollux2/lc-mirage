@@ -27,7 +27,6 @@ open UnityEngine
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
-open Mirage.core.Recording
 open Mirage.Unity.AudioStream.Component
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
@@ -47,14 +46,14 @@ type ImitatePlayer() =
     let getAudioStream = get AudioStream "AudioStream"
     let getMirage = get Mirage "Mirage"
 
-    let rec runImitationLoop : ResultT<Async<Result<Unit, String>>> =
+    let rec runImitationLoop =
         monad {
             let methodName = "runImitationLoop"
             let delay = random.Next(10000, 20001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
             let! mirage = liftResult <| getMirage methodName
-            iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer.voicePlayerState.Name
+            //iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer.voicePlayerState.Name
             return! runImitationLoop
         }
 

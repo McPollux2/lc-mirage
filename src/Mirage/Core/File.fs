@@ -17,25 +17,13 @@
 module Mirage.Core.File
 
 open UnityEngine
-open System
 
 /// <summary>
 /// The root directory of Lethal Company.
 /// </summary>
-let RootDirectory = $"{Application.dataPath}/../"
+let RootDirectory = $"{Application.dataPath}"
 
 /// <summary>
 /// The directory to save audio files in.
 /// </summray>
-let [<Literal>] AudioDirectory = "Mirage"
-
-/// <summary>
-/// Get the player's audio recordings (relative) directory path.
-/// </summary>
-let getRecordingsPath (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}"
-
-/// <summary>
-/// Create a file path to save the audio recording to.
-/// </summary>
-let createRecordingPath (playerAudioId: string): string =
-    $"{getRecordingsPath playerAudioId}/{DateTime.UtcNow.ToFileTime()}"
+let RecordingDirectory = $"{RootDirectory}/Mirage"
