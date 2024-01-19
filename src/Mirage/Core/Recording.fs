@@ -19,7 +19,6 @@ module Mirage.core.Recording
 open FSharpPlus
 open System
 open System.IO
-open GameNetcodeStuff
 open Mirage.Core.File
 open Mirage.Core.Logger
 
@@ -28,7 +27,7 @@ open Mirage.Core.Logger
 /// </summary>
 let deleteRecordings () =
     try
-        Directory.Delete(RootDirectory + AudioDirectory, true)
+        Directory.Delete($"{RootDirectory}/{AudioDirectory}", true)
     with
         | :? IOException as _ -> ()
         | error -> raise error
@@ -37,7 +36,7 @@ let deleteRecordings () =
 /// Get the file paths of all recordings for the given player.
 /// </summary>
 let private getRecordings playerAudioId =
-    let directory = getRecordingsPath playerAudioId
+    let directory = $"{RootDirectory}/{getRecordingsPath playerAudioId}"
     try
         Directory.GetFiles directory
     with | error ->

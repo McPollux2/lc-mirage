@@ -14,9 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Core.Getter
+module Mirage.Core.Field
 
 open FSharpPlus
+
+/// <summary>
+/// A convenience type for class fields.
+/// </summary>
+type Field<'A> = Ref<Option<'A>>
 
 /// <summary>
 /// A convenience type to make it simpler to create field getters.
@@ -26,12 +31,25 @@ type Getter<'A> = ref<Option<'A>> -> string -> string -> Result<'A, string>
 /// <summary>
 /// Create a getter for an optional field, providing an error message if retrieving the value fails.
 /// </summary>
-let getter<'A> (className: string) (field: ref<Option<'A>>) (fieldName: string) (methodName: string) : Result<'A, string> =
+let inline getter<'A> (className: string) (field: ref<Option<'A>>) (fieldName: string) (methodName: string) : Result<'A, string> =
     Option.toResultWith
         $"{className}#{methodName} was called while {fieldName} has not been initialized yet."
         field.Value
 
 /// <summary>
-/// A convenience type for class fields that use <b>Getter</b>.
+/// Set the value of a field.
+/// </summarY>
+let inline set<'A> (field: Field<'A>) (value: 'A) =
+    field.Value <- Some value
+
+/// <summary>
+/// Set the value of a field, whose type is nullable.
+/// </summarY>
+let inline setNullable (field: Field<'A>) (value: 'A) =
+    field.Value <- Option.ofObj value
+
+/// <summary>
+/// Set the field's value to <b>None</b>.
 /// </summary>
-type Field<'A> = Ref<Option<'A>>
+let inline setNone (field: Field<'A>) =
+    field.Value <- None

@@ -24,10 +24,10 @@ open NAudio.Wave
 open System.Threading
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
 open Mirage.Core.Logger
-open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
 open Mirage.Core.Monad
 open Mirage.Unity.Network
+open Mirage.Core.Field
 open Mirage.Core.Audio.Format
 open Mirage.Unity.AudioStream.Server
 open Mirage.Unity.AudioStream.Client
@@ -51,11 +51,11 @@ type AudioStream() =
 
     let stopAudioServer() =
         iter stopServer AudioServer.Value
-        AudioServer.Value <- None
+        setNone AudioServer
 
     let stopAudioClient() =
         iter stopClient AudioClient.Value
-        AudioClient.Value <- None
+        setNone AudioClient
 
     let stopAll () =
         flip iter AudioSource.Value <| fun audioSource ->
@@ -64,24 +64,17 @@ type AudioStream() =
         stopAudioClient()
 
     member this.Awake() =
-        AudioSource.Value <- Some <| this.gameObject.AddComponent<AudioSource>()
+        set AudioSource <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() = stopAll()
 
     /// <summary>
-    /// Whether the server is is running or not (broadcasting audio to clients).<br />
-    /// This can only be invoked by the host.
-    /// </summary>
-    member _.IsServerRunning() = fold (konst isRunning) false AudioServer.Value
-
-    /// <summary>
     /// Get the attached audio source.
     /// </summary>
-    member _.AttachedAudioSource
-        with get() =
-            match AudioSource.Value with
-                | None -> invalidOp "AudioStream#GetAudioSource called while AudioSource has not been initialized yet."
-                | Some audio -> audio
+    member _.GetAudioSource() =
+        match AudioSource.Value with
+            | None -> invalidOp "AudioStream#GetAudioSource called while AudioSource has not been initialized yet."
+            | Some audio -> audio
 
     /// <summary>
     /// Stream the given audio file to all clients. This can only be invoked by the host.
@@ -93,7 +86,7 @@ type AudioStream() =
         toUniTask_ canceller.Token <| async {
             // Stream the audio to all clients.
             let! (audioServer, pcmHeader) = startServer this.SendFrameClientRpc this.FinishAudioClientRpc filePath
-            AudioServer.Value <- Some audioServer
+            set AudioServer audioServer
             this.InitializeAudioClientRpc pcmHeader
 
             // Play the audio directly for the host.
@@ -122,7 +115,7 @@ type AudioStream() =
                 stopAudioClient()
                 let! audioSource = getAudioSource "InitializeAudioClientRpc"
                 let client = startClient audioSource pcmHeader
-                AudioClient.Value <- Some client
+                set AudioClient client
                 startTimeout client ClientTimeout
                     |> _.AsUniTask().Forget()
                 this.InitializeAudioServerRpc <| new ServerRpcParams()

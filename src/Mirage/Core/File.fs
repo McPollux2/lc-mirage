@@ -20,19 +20,19 @@ open UnityEngine
 open System
 
 /// <summary>
-/// The directory to save audio files in.
-/// </summray>
-let [<Literal>] AudioDirectory = "Mirage"
-
-/// <summary>
 /// The root directory of Lethal Company.
 /// </summary>
 let RootDirectory = $"{Application.dataPath}/../"
 
 /// <summary>
-/// Get the player's audio recordings directory path.
+/// The directory to save audio files in.
+/// </summray>
+let [<Literal>] AudioDirectory = "Mirage"
+
+/// <summary>
+/// Get the player's audio recordings (relative) directory path.
 /// </summary>
-let getRecordingsPath (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}/"
+let getRecordingsPath (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}"
 
 /// <summary>
 /// Create a file path to save the audio recording to.

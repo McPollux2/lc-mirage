@@ -77,7 +77,7 @@
     <Compile Include="Mirage/PluginInfo.fs" />
     <Compile Include="Mirage/Core/Monad.fs" />
     <Compile Include="Mirage/Core/Logger.fs" />
-    <Compile Include="Mirage/Core/Getter.fs" />
+    <Compile Include="Mirage/Core/Field.fs" />
     <Compile Include="Mirage/Core/File.fs" />
     <Compile Include="Mirage/Core/Recording.fs" />
     <Compile Include="Mirage/Unity/PlayerManager.fs" />

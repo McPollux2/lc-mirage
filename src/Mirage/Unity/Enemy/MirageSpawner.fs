@@ -20,7 +20,7 @@ open Unity.Netcode
 open FSharpPlus
 open UnityEngine
 open Mirage.Core.Logger
-open Mirage.Core.Getter
+open Mirage.Core.Field
 open Mirage.Unity.Network
 
 [<Struct>]

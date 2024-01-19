@@ -17,6 +17,7 @@
 namespace Mirage
 
 open System
+open System.IO
 open BepInEx
 open FSharpPlus
 open HarmonyLib
@@ -26,7 +27,10 @@ open Mirage.PluginInfo
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
-open System.IO
+open Mirage.Core.File
+open Mirage.Core.Logger
+open Dissonance.Config
+open Dissonance
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -35,6 +39,15 @@ type Plugin() =
     member this.Awake() =
         initNetcodePatcher()
         ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
+        //let playerAudioId = "0"
+        //let file = $"{getRecordingsPath playerAudioId}/{DateTime.Now.ToFileTime()}.wav"
+        //logInfo $"file: {file}"
+        //let path = Path.GetDirectoryName file
+        //logInfo $"path: {path}"
+        //ignore <| Directory.CreateDirectory path
+        DebugSettings.Instance.RecordPreprocessorOutput <- true
+        DebugSettings.Instance.EnablePlaybackDiagnostics <- true
+        DebugSettings.Instance.RecordDecodedAudio <- true
         let harmony = new Harmony(pluginId)
         iter (unbox<Type> >> harmony.PatchAll) 
             [   typeof<RegisterPrefab>

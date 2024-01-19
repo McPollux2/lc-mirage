@@ -21,15 +21,14 @@ open FSharpPlus.Data
 open GameNetcodeStuff
 open HarmonyLib
 open UnityEngine
+open Unity.Netcode
 open System.Collections.Generic
+open System.Reflection.Emit
 open Mirage.Core.Logger
-open Mirage.Core.Getter
+open Mirage.Core.Field
 open Mirage.Unity.Network
 open Mirage.Unity.PlayerManager
 open Mirage.Unity.Enemy.MirageSpawner
-open System.Reflection.Emit
-open Unity.Netcode
-open System
 
 let private get<'A> : Getter<'A> = getter "SpawnMirage"
 
@@ -59,7 +58,7 @@ type SpawnMirage() =
     /// Reset the tracked players.
     /// </summary>
     static let resetPlayerManager (round: StartOfRound) =
-        PlayerManager.Value <- Some <| defaultPlayerManager round _.actualClientId
+        set PlayerManager <| defaultPlayerManager round _.actualClientId
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
@@ -80,7 +79,7 @@ type SpawnMirage() =
             let! maskItem =
                 findNetworkPrefab<HauntedMaskItem> __instance
                     |> Option.toResultWith "HauntedMaskItem network prefab is missing. This is likely due to a mod incompatibility."
-            MaskItemPrefab.Value <- Some maskItem
+            set MaskItemPrefab maskItem
         }
 
     [<HarmonyPrefix>]
@@ -92,7 +91,7 @@ type SpawnMirage() =
                 // PlayerManager is used to ensure spawning only happens once.
                 let! playerManager = getPlayerManager "``spawn mirage on player death``"
                 if isPlayerActive playerManager __instance.actualClientId then
-                    PlayerManager.Value <- Some <| disablePlayer playerManager __instance.actualClientId
+                    set PlayerManager <| disablePlayer playerManager __instance.actualClientId
                     spawnMirage __instance
         }
 
@@ -113,7 +112,6 @@ type SpawnMirage() =
     [<HarmonyPatch("SetHandsOutServerRpc")>]
     [<HarmonyPatch("SetHandsOutClientRpc")>]
     static member ``disable mirage hands out``() = false
-
 
     /// <summary>
     /// Since MaskedPlayerEnemy#killAnimation spawns a mimic, this patch finds the spawn instructions and disables it.<br />

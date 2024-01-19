@@ -24,7 +24,7 @@ open Unity.Netcode
 open System
 open System.Threading
 open UnityEngine
-open Mirage.Core.Getter
+open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.core.Recording
@@ -60,13 +60,13 @@ type ImitatePlayer() =
 
     member this.Start() =
         let audioStream = this.gameObject.GetComponent<AudioStream>()
-        AudioStream.Value <- Some audioStream
-        let audioSource = audioStream.AttachedAudioSource
+        set AudioStream audioStream
+        let audioSource = audioStream.GetAudioSource()
         audioSource.spatialBlend <- 1f
         let lowPassFilter = audioSource.gameObject.AddComponent<AudioLowPassFilter>()
         lowPassFilter.cutoffFrequency <- 20000f
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
-        Mirage.Value <- Some mirage
+        set Mirage mirage
         if this.IsHost then
             runImitationLoop
                 |> ResultT.run

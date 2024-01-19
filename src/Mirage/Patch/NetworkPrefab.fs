@@ -19,8 +19,8 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
+open Mirage.Core.Field
 open Mirage.Core.Logger
-open Mirage.Core.Getter
 open Mirage.Unity.Enemy.ImitatePlayer
 open Mirage.Unity.AudioStream.Component
 open Mirage.Unity.Network
@@ -44,7 +44,7 @@ type RegisterPrefab() =
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>
                 ]
-            MiragePrefab.Value <- Some miragePrefab
+            set MiragePrefab miragePrefab
             let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> __instance
             flip iter maskedPrefabs <| fun maskedItem ->
                 ignore <| maskedItem.gameObject.AddComponent<MirageSpawner>()

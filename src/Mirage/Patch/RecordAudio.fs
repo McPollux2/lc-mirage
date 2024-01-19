@@ -22,17 +22,21 @@ open Dissonance.Audio
 open FSharpPlus
 open GameNetcodeStuff
 open System
+open System.Collections.Generic
+open Dissonance.Audio.Capture
+open Mirage.Core.Field
 open Mirage.core.Recording
 open Mirage.Core.File
 open Mirage.Core.Logger
 open Mirage.Unity.PlayerManager
-open Mirage.Core.Getter
 
 type RecordAudio() =
     static let mutable isHost = false
 
     static let PlayerManager = ref None
     static let getPlayerManager = getter "RecordAudio" PlayerManager "PlayerManager"
+
+    static let mutable dissonance = null
 
     // TODO: Filter out only alive players.
 
@@ -42,7 +46,7 @@ type RecordAudio() =
         isHost <- __instance.IsHost
         if isHost then 
             deleteRecordings()
-            PlayerManager.Value <- Some <| defaultPlayerManager __instance _.voicePlayerState.Name
+            set PlayerManager <| defaultPlayerManager __instance _.voicePlayerState.Name
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
@@ -58,11 +62,21 @@ type RecordAudio() =
     static member ``enable audio playback recording``(__instance: BufferedDecoder, context: SessionContext) : bool =
         handleResult <| monad' {
             if isHost then
+                logInfo "recording playback"
                 let! playerManager = getPlayerManager "``enable audio playback recording``"
                 if isPlayerActive playerManager context.PlayerName then
                     let filePath = $"{getRecordingsPath context.PlayerName}/{DateTime.UtcNow.ToFileTime()}"
+                    logInfo $"filepath (buffered decoder prepare): {filePath}"
                     __instance._diagnosticOutput <- new AudioFileWriter(filePath, __instance._waveFormat)
         }
         // This disables the original dissonance diagnostics recording functionality.
         // TODO: Keep the original dissonance behaviour while still recording to a custom location.
         false
+
+    [<HarmonyPatch(typeof<BasePreprocessingPipeline>, "SendSamplesToSubscribers")>]
+    static member ``record local post-processed audio``(instructions: IEnumerable<CodeInstruction>) : IEnumerable<CodeInstruction> =
+        seq {
+            for instruction in instructions do
+                logInfo "instruction unchanged"
+                yield instruction
+        }
