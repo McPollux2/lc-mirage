@@ -27,10 +27,8 @@ open UnityEngine
 open Mirage.Core.Getter
 open Mirage.Core.Logger
 open Mirage.Core.Monad
-open Mirage.Core.File
 open Mirage.core.Recording
 open Mirage.Unity.AudioStream.Component
-open Network
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -49,18 +47,10 @@ type ImitatePlayer() =
     let getAudioStream = get AudioStream "AudioStream"
     let getMirage = get Mirage "Mirage"
 
-    let rec foobar (this: ImitatePlayer) : Async<Unit> =
-        async {
-            let audioStream = this.GetComponent<AudioStream>()
-            audioStream.StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/ram-ranch.wav"
-            //do! Async.Sleep 4000
-            //return! foobar this
-        }
-
     let rec runImitationLoop : ResultT<Async<Result<Unit, String>>> =
         monad {
             let methodName = "runImitationLoop"
-            let delay = random.Next(1000, 2001) // Play voice every 10-20 secs
+            let delay = random.Next(10000, 20001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
             let! mirage = liftResult <| getMirage methodName
@@ -78,35 +68,12 @@ type ImitatePlayer() =
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
         Mirage.Value <- Some mirage
         if this.IsHost then
-            toUniTask_ canceller.Token <| foobar this
-            //runImitationLoop
-            //    |> ResultT.run
-            //    |> map handleResult
-            //    |> toUniTask_ canceller.Token
-        else this.SyncPlayerSuitServerRpc <| new ServerRpcParams()
+            runImitationLoop
+                |> ResultT.run
+                |> map handleResult
+                |> toUniTask_ canceller.Token
 
     override this.OnDestroy() =
         if this.IsHost then
             canceller.Cancel()
             dispose canceller
-
-    [<ServerRpc(RequireOwnership = false)>]
-    member this.SyncPlayerSuitServerRpc(serverParams: ServerRpcParams) =
-        handleResult <| monad {
-            if this.IsHost && isValidClient this serverParams then
-                let! mirage = getMirage "SyncPlayerSuitServerRpc"
-                let suitId = mirage.mimickingPlayer.currentSuitID
-                let clientId = serverParams.Receive.SenderClientId
-                let sendParams = new ClientRpcSendParams(TargetClientIds = [clientId])
-                let clientParams = new ClientRpcParams(Send = sendParams)
-                this.SyncPlayerSuitClientRpc(suitId, clientParams)
-            }
-
-
-    [<ClientRpc>]
-    member this.SyncPlayerSuitClientRpc(suitId: int, _: ClientRpcParams) =
-        handleResult <| monad {
-            if not this.IsHost then
-                let! mirage = getMirage "SyncPlayerSuitClientRpc"
-                mirage.SetSuit suitId
-        }
