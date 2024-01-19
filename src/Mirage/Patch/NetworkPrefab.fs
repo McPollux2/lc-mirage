@@ -19,10 +19,9 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
-open UnityEngine
 open Mirage.Core.Logger
 open Mirage.Core.Getter
-open Mirage.Unity.ImitatePlayer
+open Mirage.Unity.Enemy.ImitatePlayer
 open Mirage.Unity.AudioStream.Component
 open Mirage.Unity.Network
 open Mirage.Unity.Enemy.MirageSpawner
@@ -30,18 +29,6 @@ open Mirage.Unity.Enemy.MirageSpawner
 type RegisterPrefab() =
     static let MiragePrefab = ref None
     static let getMiragePrefab = getter "InitializePrefab" MiragePrefab "MiragePrefab"
-
-    // TODO: Remove this.
-    [<HarmonyPrefix>]
-    [<HarmonyPatch(typeof<Debug>, "Log", [| typeof<obj> |])>]
-    static member RemoveAnnoyingLogs(message: obj) =
-        if message :? string then
-            let m = message :?> string
-            not (
-                m.StartsWith("Looking at fo") || m.StartsWith("Look rotation viewing") || m.StartsWith("STARTING AI") || m.StartsWith("Setting zap mode")
-            )
-        else
-            true
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
