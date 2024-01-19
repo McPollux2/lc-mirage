@@ -75,6 +75,12 @@
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>../lib/UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>../lib/UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>../lib/UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Mirage/PluginInfo.fs" />
@@ -82,15 +88,17 @@
     <Compile Include="Mirage/Core/Logger.fs" />
     <Compile Include="Mirage/Core/Getter.fs" />
     <Compile Include="Mirage/Core/File.fs" />
-    <Compile Include="Mirage/Core/Audio/Recording.fs" />
+    <Compile Include="Mirage/Core/Recording.fs" />
+    <Compile Include="Mirage/Unity/PlayerManager.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
     <Compile Include="Mirage/Core/Audio/Stream.fs" />
-    <Compile Include="Mirage/Unity/NetworkBehaviour.fs" />
-    <Compile Include="Mirage/Unity/Audio/Client.fs" />
-    <Compile Include="Mirage/Unity/Audio/Server.fs" />
-    <Compile Include="Mirage/Unity/Audio/AudioStream.fs" />
+    <Compile Include="Mirage/Unity/Network.fs" />
+    <Compile Include="Mirage/Unity/AudioStream/Client.fs" />
+    <Compile Include="Mirage/Unity/AudioStream/Server.fs" />
+    <Compile Include="Mirage/Unity/AudioStream/Component.fs" />
     <Compile Include="Mirage/Unity/ImitatePlayer.fs" />
+    <Compile Include="Mirage/Unity/Enemy/MirageSpawner.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Patch/NetworkPrefab.fs" />
     <Compile Include="Mirage/Patch/SpawnMirage.fs" />

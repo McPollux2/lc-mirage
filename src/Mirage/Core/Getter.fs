@@ -30,3 +30,8 @@ let getter<'A> (className: string) (field: ref<Option<'A>>) (fieldName: string) 
     Option.toResultWith
         $"{className}#{methodName} was called while {fieldName} has not been initialized yet."
         field.Value
+
+/// <summary>
+/// A convenience type for class fields that use <b>Getter</b>.
+/// </summary>
+type Field<'A> = Ref<Option<'A>>

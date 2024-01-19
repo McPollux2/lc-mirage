@@ -21,19 +21,11 @@ open HarmonyLib
 open Unity.Netcode
 open UnityEngine
 open Mirage.Core.Logger
-open Mirage.Unity.Audio.AudioStream
-open Mirage.Unity.ImitatePlayer
 open Mirage.Core.Getter
-
-/// <summary>
-/// Find the network prefab, specified by the generic parameter.
-/// </summary>
-let findNetworkPrefab<'A> (manager: GameNetworkManager) : Option<NetworkPrefab> =
-    let networkManager = manager.GetComponent<NetworkManager>()
-    let networkPrefabs = networkManager.NetworkConfig.Prefabs.m_Prefabs
-    let isTargetPrefab (networkPrefab: NetworkPrefab) =
-        not << isNull <| networkPrefab.Prefab.GetComponent typeof<'A>
-    List.tryFind isTargetPrefab <| List.ofSeq networkPrefabs
+open Mirage.Unity.ImitatePlayer
+open Mirage.Unity.AudioStream.Component
+open Mirage.Unity.Network
+open Mirage.Unity.Enemy.MirageSpawner
 
 type RegisterPrefab() =
     static let MiragePrefab = ref None
@@ -55,18 +47,20 @@ type RegisterPrefab() =
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``register network prefab``(__instance: GameNetworkManager) =
         handleResult <| monad' {
-            let! networkPrefab = 
+            let! miragePrefab = 
                 findNetworkPrefab<MaskedPlayerEnemy> __instance
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
-            let prefab = networkPrefab.Prefab.GetComponent<MaskedPlayerEnemy>()
-            prefab.enemyType.enemyName <- "Mirage"
-            prefab.enemyType.isDaytimeEnemy <- true
-            prefab.enemyType.isOutsideEnemy <- true
-            iter (prefab.gameObject.AddComponent >> ignore)
+            miragePrefab.enemyType.enemyName <- "Mirage"
+            miragePrefab.enemyType.isDaytimeEnemy <- true
+            miragePrefab.enemyType.isOutsideEnemy <- true
+            iter (miragePrefab.gameObject.AddComponent >> ignore)
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>
                 ]
-            MiragePrefab.Value <- Some prefab
+            MiragePrefab.Value <- Some miragePrefab
+            let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> __instance
+            flip iter maskedPrefabs <| fun maskedItem ->
+                ignore <| maskedItem.gameObject.AddComponent<MirageSpawner>()
         }
 
     [<HarmonyPostfix>]

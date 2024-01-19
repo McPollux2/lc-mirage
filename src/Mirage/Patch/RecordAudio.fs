@@ -21,15 +21,18 @@ open Dissonance.Audio.Playback
 open Dissonance.Audio
 open FSharpPlus
 open GameNetcodeStuff
+open System
+open Mirage.core.Recording
+open Mirage.Core.File
 open Mirage.Core.Logger
-open Mirage.Core.Audio.Recording
+open Mirage.Unity.PlayerManager
 open Mirage.Core.Getter
 
 type RecordAudio() =
     static let mutable isHost = false
 
-    static let RecordingManager = ref None
-    static let getRecordingManager = getter "RecordAudio" RecordingManager "RecordingManager"
+    static let PlayerManager = ref None
+    static let getPlayerManager = getter "RecordAudio" PlayerManager "PlayerManager"
 
     // TODO: Filter out only alive players.
 
@@ -39,15 +42,15 @@ type RecordAudio() =
         isHost <- __instance.IsHost
         if isHost then 
             deleteRecordings()
-            RecordingManager.Value <- Some <| startRecordingManager __instance
+            PlayerManager.Value <- Some <| defaultPlayerManager __instance _.voicePlayerState.Name
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
     static member ``disable recording dead players``(__instance: PlayerControllerB) =
         handleResult <| monad' {
             if isHost then
-                let! recordingManager = getRecordingManager "``disable recording dead players``"
-                RecordingManager.Value <- Some <| setPlayerDead recordingManager __instance
+                let! playerManager = getPlayerManager "``disable recording dead players``"
+                PlayerManager.Value <- Some <| disablePlayer playerManager __instance.voicePlayerState.Name
         }
 
     [<HarmonyPrefix>]
@@ -55,9 +58,10 @@ type RecordAudio() =
     static member ``enable audio playback recording``(__instance: BufferedDecoder, context: SessionContext) : bool =
         handleResult <| monad' {
             if isHost then
-                let! recordingManager = getRecordingManager "``enable audio playback recording``"
-                if isPlayerAlive recordingManager context.PlayerName then
-                    __instance._diagnosticOutput <- new AudioFileWriter(createRecordingPath context.PlayerName, __instance._waveFormat)
+                let! playerManager = getPlayerManager "``enable audio playback recording``"
+                if isPlayerActive playerManager context.PlayerName then
+                    let filePath = $"{getRecordingsPath context.PlayerName}/{DateTime.UtcNow.ToFileTime()}"
+                    __instance._diagnosticOutput <- new AudioFileWriter(filePath, __instance._waveFormat)
         }
         // This disables the original dissonance diagnostics recording functionality.
         // TODO: Keep the original dissonance behaviour while still recording to a custom location.

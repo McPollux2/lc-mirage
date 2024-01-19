@@ -14,23 +14,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Unity.Audio.AudioStream
+module Mirage.Unity.AudioStream.Component
 
-open Server
-open Client
 open FSharpPlus
 open UnityEngine
 open Unity.Netcode
 open Cysharp.Threading.Tasks
+open NAudio.Wave
+open System.Threading
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
 open Mirage.Core.Logger
 open Mirage.Core.Getter
 open Mirage.Core.Audio.Data
-open Mirage.Unity.NetworkBehaviour
-open System.Threading
 open Mirage.Core.Monad
-open NAudio.Wave
+open Mirage.Unity.Network
 open Mirage.Core.Audio.Format
+open Mirage.Unity.AudioStream.Server
+open Mirage.Unity.AudioStream.Client
 
 let [<Literal>] ClientTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"

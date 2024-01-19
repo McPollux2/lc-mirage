@@ -41,3 +41,11 @@ type Plugin() =
                 typeof<RecordAudio>
                 typeof<SpawnMirage>
             ]
+        harmony.Patch(
+            original =
+                AccessTools.Method(
+                    AccessTools.Inner(typeof<MaskedPlayerEnemy>, "<killAnimation>d__102"), 
+                    "MoveNext"
+                ),
+            transpiler = new HarmonyMethod(typeof<SpawnMirage>, "prevent duplicate mirage spawn")
+        )

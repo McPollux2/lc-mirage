@@ -14,15 +14,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Core.Audio.Recording
+module Mirage.core.Recording
 
 open FSharpPlus
-open GameNetcodeStuff
-open System;
+open System
 open System.IO
+open GameNetcodeStuff
 open Mirage.Core.File
 open Mirage.Core.Logger
-open Microsoft.FSharp.Core.Option
 
 /// <summary>
 /// Delete the audio directory, ignoring the <b>IOException</b> if it gets thrown.
@@ -53,41 +52,3 @@ let getRandomRecording (random: Random) (player: PlayerControllerB) : option<str
     let recordings = getRecordings player
     if recordings.Length = 0 then None
     else Some << Array.get recordings <| random.Next recordings.Length
-
-/// <summary>
-/// Create a file path to save the audio recording to.
-/// </summary>
-let createRecordingPath (playerAudioId: string): string =
-    $"{getRecordingsPath playerAudioId}/{DateTime.UtcNow.ToFileTime()}"
-
-type RecordingManager =
-    private
-        {   // Alive players using their player audio id as the key.
-            alivePlayers: Map<string, PlayerControllerB>
-        }
-
-/// <summary>
-/// Initialize the recording manager. This should be called at the start of
-/// a round, when all player scripts are ready (have been added to the list).
-/// </summary>
-let startRecordingManager (playerManager: StartOfRound) =
-    {   alivePlayers =
-            playerManager.allPlayerScripts
-                |> Array.map (fun player -> (player.voicePlayerState.Name, player))
-                |> List.ofSeq
-                |> Map.ofList
-    }
-
-/// <summary>
-/// Mark the player as dead to avoid recording the player's voice.
-/// </summary>
-let setPlayerDead (manager: RecordingManager) (player: PlayerControllerB) =
-    { manager with
-        alivePlayers = Map.remove player.voicePlayerState.Name <| manager.alivePlayers
-    }
-
-/// <summary>
-/// Whether the given player is still alive or not.
-/// </summary>
-let isPlayerAlive (manager: RecordingManager) (playerAudioId: string) : bool =
-    isSome <| manager.alivePlayers.TryFind playerAudioId

@@ -17,6 +17,7 @@
 module Mirage.Core.File
 
 open UnityEngine
+open System
 
 /// <summary>
 /// The directory to save audio files in.
@@ -32,3 +33,9 @@ let RootDirectory = $"{Application.dataPath}/../"
 /// Get the player's audio recordings directory path.
 /// </summary>
 let getRecordingsPath (playerAudioId: string) = $"{AudioDirectory}/{playerAudioId}/"
+
+/// <summary>
+/// Create a file path to save the audio recording to.
+/// </summary>
+let createRecordingPath (playerAudioId: string): string =
+    $"{getRecordingsPath playerAudioId}/{DateTime.UtcNow.ToFileTime()}"
