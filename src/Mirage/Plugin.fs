@@ -23,18 +23,18 @@ open HarmonyLib
 open Netcode
 open NAudio.Lame
 open Mirage.PluginInfo
-open Mirage.Core.File
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
+open System.IO
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
     inherit BaseUnityPlugin()
 
-    member _.Awake() =
+    member this.Awake() =
         initNetcodePatcher()
-        ignore <| LameDLL.LoadNativeDLL $"{RootDirectory}/BepInEx/plugins/"
+        ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
         let harmony = new Harmony(pluginId)
         iter (unbox<Type> >> harmony.PatchAll) 
             [   typeof<RegisterPrefab>
