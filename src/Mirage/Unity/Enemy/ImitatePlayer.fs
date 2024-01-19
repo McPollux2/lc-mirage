@@ -54,7 +54,7 @@ type ImitatePlayer() =
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
             let! mirage = liftResult <| getMirage methodName
-            iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer
+            iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer.voicePlayerState.Name
             return! runImitationLoop
         }
 

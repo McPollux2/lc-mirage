@@ -36,8 +36,8 @@ let deleteRecordings () =
 /// <summary>
 /// Get the file paths of all recordings for the given player.
 /// </summary>
-let getRecordings (player: PlayerControllerB) : array<string> =
-    let directory = getRecordingsPath player.voicePlayerState.Name
+let private getRecordings playerAudioId =
+    let directory = getRecordingsPath playerAudioId
     try
         Directory.GetFiles directory
     with | error ->
@@ -48,7 +48,7 @@ let getRecordings (player: PlayerControllerB) : array<string> =
 /// <summary>
 /// Get the file path of a random recording for the given player (returns <b>None</b> if no recordings exist.
 /// </summary>
-let getRandomRecording (random: Random) (player: PlayerControllerB) : option<string> =
-    let recordings = getRecordings player
+let getRandomRecording (random: Random) (playerAudioId: string) : option<string> =
+    let recordings = getRecordings playerAudioId
     if recordings.Length = 0 then None
     else Some << Array.get recordings <| random.Next recordings.Length
