@@ -95,8 +95,7 @@ let deleteRecordings () =
     try
         Directory.Delete($"{RecordingDirectory}", true)
     with
-        | :? IOException as _ -> ()
-        | error -> raise error
+        | error -> logError $"Failed to delete recording folder: {error}"
 
 /// <summary>
 /// Start recording a player.

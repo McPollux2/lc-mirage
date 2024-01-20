@@ -51,6 +51,7 @@ type RecordAudio() =
     static member ``initialize recording manager``(__instance: StartOfRound) =
         if __instance.IsHost then
             let dissonance = UnityEngine.Object.FindObjectOfType<DissonanceComms>()
+            deleteRecordings()
             defaultRecordingManager dissonance
                 |> flip startRecording (getLocalPlayer())
                 |> set RecordingManager
@@ -58,7 +59,7 @@ type RecordAudio() =
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
-    static member ``start recording player on game start``(__instance: StartOfRound, clientId: uint64) =
+    static member ``start recording non-host player on connect``(__instance: StartOfRound, clientId: uint64) =
         if __instance.IsHost then
             let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
