@@ -62,8 +62,10 @@ let private getRecordingDirectory voiceId = $"{RecordingDirectory}/{voiceId}"
 /// This returns <b>None</b> if the player isn't being recorded.
 /// </summary>
 let createRecordingName (manager: RecordingManager) (voiceId: string) : option<string> =
-    getPlayer manager.playerManager voiceId
-        |> map (konst $"{getRecordingDirectory voiceId}/{DateTime.UtcNow.ToFileTime()}.wav")
+    monad' {
+        let! _ = getPlayer manager.playerManager voiceId
+        $"{getRecordingDirectory voiceId}/{DateTime.UtcNow.ToFileTime()}.wav"
+    }
 
 /// <summary>
 /// Get a list of all the player recording's file names.
