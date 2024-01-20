@@ -54,23 +54,29 @@ type SpawnMirage() =
             mirageSpawner.SpawnMirage()
         }
 
-    /// <summary>
-    /// Reset the tracked players.
-    /// </summary>
-    static let resetPlayerManager (round: StartOfRound) =
-        set PlayerManager <| defaultPlayerManager (Some << _.actualClientId)
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<PlayerControllerB>, "ConnectClientToPlayerObject")>]
+    static member ``start player manager (host)``(__instance: PlayerControllerB) =
+        // Only start the player manager after game network manager has set the local player controller.
+        if __instance.IsHost 
+            && not (isNull GameNetworkManager.Instance.localPlayerController)
+            && __instance = GameNetworkManager.Instance.localPlayerController 
+            && Option.isNone PlayerManager.Value
+                then
+                defaultPlayerManager (Some << _.actualClientId)
+                    |> flip addPlayer GameNetworkManager.Instance.localPlayerController
+                    |> set PlayerManager
 
     [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
-    static member ``start player manager (host)``(__instance: StartOfRound) =
+    [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
+    static member ``start tracking player on game start``(__instance: StartOfRound, clientId: uint64) =
         if __instance.IsHost then
-            resetPlayerManager __instance
-
-    [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<StartOfRound>, "Start")>]
-    static member ``start player manager (client)``(__instance: StartOfRound) =
-        if not __instance.IsHost then
-            resetPlayerManager __instance
+            let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
+            let player = StartOfRound.Instance.allPlayerScripts[playerId]
+            getPlayerManager zero
+                |>> flip addPlayer player
+                |> Option.ofResult
+                |> setOption PlayerManager
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
@@ -87,7 +93,7 @@ type SpawnMirage() =
     static member ``spawn mirage on player death``(__instance: PlayerControllerB) =
         handleResult <| monad' {
             if __instance.IsHost then
-                // For whatever raeson, KillPlayerServerRpc is invoked twice, per player death.
+                // For whatever reason, KillPlayerServerRpc is invoked twice, per player death.
                 // PlayerManager is used to ensure spawning only happens once.
                 let! playerManager = getPlayerManager "``spawn mirage on player death``"
                 if isPlayerTracked playerManager __instance then

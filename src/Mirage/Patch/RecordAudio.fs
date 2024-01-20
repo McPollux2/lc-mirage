@@ -56,12 +56,15 @@ type RecordAudio() =
                 |> set RecordingManager
             clientRecordings.Clear()
 
-    [<HarmonyPrefix>]
-    [<HarmonyPatch(typeof<StartOfRound>, "PlayerLoadedServerRpc")>]
-    static member ``start recording player on game start``(__instance: StartOfRound) =
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
+    static member ``start recording player on game start``(__instance: StartOfRound, clientId: uint64) =
         if __instance.IsHost then
-            // TODO addPlayer playermanager
-            ()
+            let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
+            let player = StartOfRound.Instance.allPlayerScripts[playerId]
+            get RecordingManager
+                |>> flip startRecording player
+                |> setOption RecordingManager
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
