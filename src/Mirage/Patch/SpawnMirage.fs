@@ -58,7 +58,7 @@ type SpawnMirage() =
     /// Reset the tracked players.
     /// </summary>
     static let resetPlayerManager (round: StartOfRound) =
-        set PlayerManager <| defaultPlayerManager round _.actualClientId
+        set PlayerManager <| defaultPlayerManager (Some << _.actualClientId)
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
@@ -90,8 +90,8 @@ type SpawnMirage() =
                 // For whatever raeson, KillPlayerServerRpc is invoked twice, per player death.
                 // PlayerManager is used to ensure spawning only happens once.
                 let! playerManager = getPlayerManager "``spawn mirage on player death``"
-                if isPlayerActive playerManager __instance.actualClientId then
-                    set PlayerManager <| disablePlayer playerManager __instance.actualClientId
+                if isPlayerTracked playerManager __instance then
+                    set PlayerManager <| removePlayer playerManager __instance
                     spawnMirage __instance
         }
 

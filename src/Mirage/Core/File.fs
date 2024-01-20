@@ -21,7 +21,7 @@ open UnityEngine
 /// <summary>
 /// The root directory of Lethal Company.
 /// </summary>
-let RootDirectory = $"{Application.dataPath}"
+let RootDirectory = $"{Application.dataPath}/.."
 
 /// <summary>
 /// The directory to save audio files in.

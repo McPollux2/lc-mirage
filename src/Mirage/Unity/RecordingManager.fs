@@ -29,33 +29,27 @@ open Mirage.Core.Logger
 /// Used for saving recordings via dissonance.
 /// </summary>
 type RecordingManager =
-    private
-        {   dissonance: DissonanceComms
-            round: StartOfRound
-            playerManager: PlayerManager<string>
-            random: Random
-        }
+    {   playerManager: PlayerManager<string>
+        dissonance: DissonanceComms
+    }
 
 /// <summary>
-/// Retrieve the player's voice id. By default, the local player's voice player state is null,
-/// so we fetch it from dissonance comms instead.
+/// Retrieve the player's voice id. If the player isn't initialized, this will return <b>None</b>.
 /// </summary>
-let private getVoiceId (dissonance: DissonanceComms) (player: PlayerControllerB) =
-    if player.IsLocalPlayer then
-        dissonance.LocalPlayerName
+let getVoiceId (dissonance: DissonanceComms) (player: PlayerControllerB) : Option<string> =
+    if player = GameNetworkManager.Instance.localPlayerController then
+        Some dissonance.LocalPlayerName
     else if isNull player.voicePlayerState then
-        invalidOp "RecordingManager#getVoiceId failed, due to player.voicePlayerState being null."
+        None
     else
-        player.voicePlayerState.Name
+        Some player.voicePlayerState.Name
 
 /// <summary>
-/// Initialize the recording manager. This should be called at when all player scripts are ready.
+/// Create a default instance of a recording manager.
 /// </summary>
-let defaultRecordingManager (dissonance: DissonanceComms) (round: StartOfRound) =
-    {   dissonance = dissonance
-        round = round
-        playerManager = defaultPlayerManager round <| getVoiceId dissonance
-        random = new Random()
+let defaultRecordingManager (dissonance: DissonanceComms) =
+    {   playerManager = defaultPlayerManager <| getVoiceId dissonance
+        dissonance = dissonance
     }
 
 /// <summary>
@@ -64,10 +58,12 @@ let defaultRecordingManager (dissonance: DissonanceComms) (round: StartOfRound) 
 let private getRecordingDirectory voiceId = $"{RecordingDirectory}/{voiceId}"
 
 /// <summary>
-/// Create a random file name for a recording.
+/// Create a random file name for a recording.<br />
+/// This returns <b>None</b> if the player isn't being recorded.
 /// </summary>
-let createRecordingName (voiceId: string) : string =
-    $"{getRecordingDirectory voiceId}/{DateTime.UtcNow.ToFileTime()}.wav"
+let createRecordingName (manager: RecordingManager) (voiceId: string) : option<string> =
+    getPlayer manager.playerManager voiceId
+        |> map (konst $"{getRecordingDirectory voiceId}/{DateTime.UtcNow.ToFileTime()}.wav")
 
 /// <summary>
 /// Get a list of all the player recording's file names.
@@ -84,11 +80,11 @@ let private getRecordings voiceId =
 /// <summary>
 /// Get a random recording for the given player.
 /// </summary>
-let getRandomRecording (manager: RecordingManager) (player: PlayerControllerB) =
-    let voiceId = getVoiceId manager.dissonance player
+let getRandomRecording (dissonance: DissonanceComms) (random: Random) (player: PlayerControllerB) =
+    let voiceId = getVoiceId dissonance player
     let recordings = getRecordings voiceId
     if recordings.Length = 0 then None
-    else Some recordings[manager.random.Next recordings.Length]
+    else Some recordings[random.Next recordings.Length]
 
 /// <summary>
 /// Delete the directory containing recordings, ignoring the <b>IOException</b> if it gets thrown.
@@ -101,18 +97,13 @@ let deleteRecordings () =
         | error -> raise error
 
 /// <summary>
-/// Whether the player should be recorded or not.
+/// Start recording a player.
 /// </summary>
-let isRecordingPlayer (manager: RecordingManager) : string -> bool =
-    isPlayerActive manager.playerManager
+let startRecording (manager: RecordingManager) (player: PlayerControllerB) =
+    { manager with playerManager = addPlayer manager.playerManager player }
 
 /// <summary>
 /// Stop the player from being recorded.
 /// </summary>
-let stopRecording (manager: RecordingManager) (voiceId: string) =
-    { manager with playerManager = disablePlayer manager.playerManager voiceId }
-
-/// <summary>
-/// Get the local player's voice id.
-/// </summary>
-let getLocalVoiceId (manager: RecordingManager) = manager.dissonance.LocalPlayerName
+let stopRecording (manager: RecordingManager) (player: PlayerControllerB) =
+    { manager with playerManager = removePlayer manager.playerManager player }

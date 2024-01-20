@@ -18,46 +18,50 @@ module Mirage.Unity.PlayerManager
 
 open FSharpPlus
 open GameNetcodeStuff
-open Microsoft.FSharp.Core.Option
 
 /// <summary>
-/// Keeps track of players, until a player is marked as disabled.
+/// A map of players, using an arbitrary key.
 /// </summary>
-type PlayerManager<'PlayerId when 'PlayerId : comparison> =
-    private { players: Map<'PlayerId, PlayerControllerB> }
+type PlayerManager<'Key when 'Key : comparison> =
+    private
+        {   players: Map<'Key, PlayerControllerB>
+            toKey: PlayerControllerB -> Option<'Key>
+        }
 
 /// <summary>
-/// Initialize the player manager. This should be called at when all player scripts are ready.
+/// Create a default instance of a player manager.
 /// </summary>
-let defaultPlayerManager<'PlayerId when 'PlayerId : comparison> (startOfRound: StartOfRound) (toPlayerId: PlayerControllerB -> 'PlayerId) =
-    {   // Since non-connected players have a client id of 0,
-        // reversing the list before converting it to Map will keep only the
-        // first player (always the host).
-        players =
-            startOfRound.allPlayerScripts
-                |> Array.map (fun player -> (toPlayerId player, player))
-                |> List.ofSeq
-                |> List.rev
-                |> Map.ofList
+let defaultPlayerManager (toKey: PlayerControllerB -> Option<'Key>) : PlayerManager<'Key> =
+    {   players = zero
+        toKey = toKey
     }
 
 /// <summary>
-/// Mark the player as disabled. The given player is no longer tracked.<br />
-/// If an invalid player id is given, this will simply do nothing.
+/// Add a player to PlayerManager. If the player isn't initialized, this will simply do nothing.
 /// </summary>
-let disablePlayer<'PlayerId when 'PlayerId : comparison> (manager: PlayerManager<'PlayerId>) (playerId: 'PlayerId) =
-    { manager with
-        players = Map.remove playerId <| manager.players
-    }
+let addPlayer (manager: PlayerManager<'Key>) (player: PlayerControllerB) =
+    let updatedManager =
+        manager.toKey player |>> fun key ->
+            { manager with players = manager.players.Add(key, player) }
+    Option.defaultValue manager updatedManager
 
 /// <summary>
-/// Retrieve the player if it hasn't been disabled by <b>disablePlayer</b>.
+/// Remove a player from PlayerManger. If the player isn't initialized, this will simply do nothing.
 /// </summary>
-let getActivePlayer<'PlayerId when 'PlayerId : comparison> (manager: PlayerManager<'PlayerId>) : 'PlayerId -> Option<PlayerControllerB> =
+let removePlayer (manager: PlayerManager<'Key>) (player: PlayerControllerB) =
+    let updatedManager =
+        manager.toKey player |>> fun key ->
+            { manager with players = manager.players.Remove key }
+    Option.defaultValue manager updatedManager
+
+/// <summary>
+/// Retrieve a player using the given arbitrary key.
+/// </summary>
+let getPlayer (manager: PlayerManager<'Key>) : 'Key -> Option<PlayerControllerB> =
     manager.players.TryFind
 
 /// <summary>
-/// Whether the given player is still active or not.
+/// Check if the given player is tracked or not.
 /// </summary>
-let isPlayerActive<'PlayerId when 'PlayerId : comparison> (manager: PlayerManager<'PlayerId>) : 'PlayerId -> bool =
-    isSome << getActivePlayer manager
+let isPlayerTracked (manager: PlayerManager<'Key>) (player: PlayerControllerB) : bool =
+    Option.isSome (getPlayer manager =<< manager.toKey player)

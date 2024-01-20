@@ -38,15 +38,21 @@ let inline getter<'A> (className: string) (field: ref<Option<'A>>) (fieldName: s
 
 /// <summary>
 /// Set the value of a field.
-/// </summarY>
+/// </summary>
 let inline set<'A> (field: Field<'A>) (value: 'A) =
     field.Value <- Some value
 
 /// <summary>
 /// Set the value of a field, whose type is nullable.
-/// </summarY>
+/// </summary>
 let inline setNullable (field: Field<'A>) (value: 'A) =
     field.Value <- Option.ofObj value
+
+/// <summary>
+/// Set the value of a field.
+/// </summary>
+let inline setOption (field: Field<'A>) (value: Option<'A>) =
+    field.Value <- value
 
 /// <summary>
 /// Set the field's value to <b>None</b>.

@@ -39,12 +39,6 @@ type Plugin() =
     member this.Awake() =
         initNetcodePatcher()
         ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
-        //let playerAudioId = "0"
-        //let file = $"{getRecordingsPath playerAudioId}/{DateTime.Now.ToFileTime()}.wav"
-        //logInfo $"file: {file}"
-        //let path = Path.GetDirectoryName file
-        //logInfo $"path: {path}"
-        //ignore <| Directory.CreateDirectory path
         DebugSettings.Instance.RecordPreprocessorOutput <- true
         DebugSettings.Instance.EnablePlaybackDiagnostics <- true
         DebugSettings.Instance.RecordDecodedAudio <- true
