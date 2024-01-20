@@ -119,15 +119,22 @@ type SpawnMirage() =
     [<HarmonyPatch("SetHandsOutClientRpc")>]
     static member ``disable mirage hands out``() = false
 
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Awake")>]
+    static member ``remove mask texture``(__instance: MaskedPlayerEnemy) =
+        __instance.GetComponentsInChildren<Transform>()
+            |> filter _.name.StartsWith("HeadMask")
+            |> iter _.gameObject.SetActive(false)
+
     /// <summary>
     /// Since MaskedPlayerEnemy#killAnimation spawns a mimic, this patch finds the spawn instructions and disables it.<br />
     /// This patch is not automatically picked up by harmony, requiring a manual call to <b>Harmony#Patch</b>.
     /// </summary>
     static member ``prevent duplicate mirage spawn``(instructions: IEnumerable<CodeInstruction>): IEnumerable<CodeInstruction> =
-        let target = AccessTools.Method(typeof<NetworkBehaviour>, "get_IsServer")
+        let targetMethod = AccessTools.Method(typeof<NetworkBehaviour>, "get_IsServer")
         seq {
             for instruction in instructions do
-                if instruction.Calls target then
+                if instruction.Calls targetMethod then
                     // Skip the if (base.IsServer) { ... } call.
                     yield new CodeInstruction(OpCodes.Pop)
                     yield new CodeInstruction(OpCodes.Ldc_I4_0)

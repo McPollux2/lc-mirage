@@ -28,6 +28,10 @@ open Dissonance.Audio.Capture
 open Dissonance.Audio.Playback
 open Mirage.Core.Field
 open Mirage.Unity.RecordingManager
+open Mirage.Core.Logger
+open System.Collections.Generic
+open UnityEngine
+open System.Reflection.Emit
 
 let private get<'A> (field: Field<'A>) = Option.ofResult <| getter zero field zero zero
 
@@ -48,7 +52,7 @@ type RecordAudio() =
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
-    static member ``initialize recording manager``(__instance: StartOfRound) =
+    static member ``initialize recording manager with host player added to recording manager``(__instance: StartOfRound) =
         if __instance.IsHost then
             let dissonance = UnityEngine.Object.FindObjectOfType<DissonanceComms>()
             deleteRecordings()
@@ -57,12 +61,27 @@ type RecordAudio() =
                 |> set RecordingManager
             clientRecordings.Clear()
 
-    [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
-    static member ``start recording non-host player on connect``(__instance: StartOfRound, clientId: uint64) =
-        if __instance.IsHost then
-            let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
-            let player = StartOfRound.Instance.allPlayerScripts[playerId]
+    [<HarmonyPatch(typeof<StartOfRound>, "RefreshPlayerVoicePlaybackObjects")>]
+    static member Transpiler (instructions: IEnumerable<CodeInstruction>) =
+        let targetMethod = AccessTools.Method(typeof<AudioSource>, "set_outputAudioMixerGroup")
+        seq {
+            for instruction in instructions do
+                if instruction.Calls targetMethod then
+                    // These instructions calls the ``start recording non-host player`` method.
+                    yield new CodeInstruction(OpCodes.Ldloc_1)
+                    yield new CodeInstruction(
+                        OpCodes.Call,
+                        AccessTools.Method(
+                            typeof<RecordAudio>, "add non-host player to recording manager",
+                            [|typeof<PlayerControllerB>|]
+                        )
+                    )
+                yield instruction
+        }
+
+    // This does not have patch annotations because it's called by the above transpiler.
+    static member ``add non-host player to recording manager``(player: PlayerControllerB) =
+        if not player.isPlayerDead then
             get RecordingManager
                 |>> flip startRecording player
                 |> setOption RecordingManager
@@ -111,8 +130,11 @@ type RecordAudio() =
     [<HarmonyPatch(typeof<BufferedDecoder>, "Prepare")>]
     static member ``prepare to record for non-host players``(__instance: BufferedDecoder, context: SessionContext) =
         ignore <| monad' {
+            logInfo $"recording non-host audio (prepare): {context.PlayerName}"
             let! recordingManager = get RecordingManager
+            logInfo $"recording non-host audio (after recordingManager)"
             let! fileName = createRecordingName recordingManager context.PlayerName
+            logInfo $"recording non-host audio (after fileName)"
             let recording = new AudioFileWriter(fileName, __instance._waveFormat)
             clientRecordings.Add(__instance, recording)
         }
@@ -122,6 +144,7 @@ type RecordAudio() =
     static member ``record non-host player's audio``(__instance: BufferedDecoder, frame: ArraySegment<float32>) =
         let mutable recording = null
         if clientRecordings.TryGetValue(__instance, &recording) then
+            logInfo $"recording non-host audio (read)"
             recording.WriteSamples(frame)
 
     [<HarmonyPrefix>]
