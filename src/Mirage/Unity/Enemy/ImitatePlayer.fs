@@ -24,6 +24,7 @@ open FSharpPlus.Data
 open Unity.Netcode
 open System.Threading
 open UnityEngine
+open Mirage.Core.File
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
@@ -57,8 +58,9 @@ type ImitatePlayer() =
             let! audioStream = liftResult <| getAudioStream methodName
             let! mirage = liftResult <| getMirage methodName
             let! dissonance = liftResult <| getDissonance methodName
-            let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
-            iter (audioStream: AudioStream).StreamAudioFromFile recording
+            //let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
+            //iter (audioStream: AudioStream).StreamAudioFromFile recording
+            (audioStream: AudioStream).StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/whistle.wav"
             return! runImitationLoop
         }
 
