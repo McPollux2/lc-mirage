@@ -18,16 +18,17 @@ module Mirage.Unity.Enemy.ImitatePlayer
 
 #nowarn "40"
 
+open Dissonance
 open FSharpPlus
 open FSharpPlus.Data
 open Unity.Netcode
-open System
 open System.Threading
 open UnityEngine
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.AudioStream.Component
+open Mirage.Unity.RecordingManager
 
 let private get<'A> : Getter<'A> = getter "ImitatePlayer"
 
@@ -40,9 +41,11 @@ type ImitatePlayer() =
     let random = new System.Random()
     let canceller = new CancellationTokenSource()
 
-    let AudioStream: Ref<Option<AudioStream>> = ref None
-    let Mirage: Ref<Option<MaskedPlayerEnemy>> = ref None
+    let Dissonance = ref None
+    let AudioStream = ref None
+    let Mirage = ref None
     
+    let getDissonance = get Dissonance "Dissonance"
     let getAudioStream = get AudioStream "AudioStream"
     let getMirage = get Mirage "Mirage"
 
@@ -53,11 +56,14 @@ type ImitatePlayer() =
             return! liftAsync <| Async.Sleep delay
             let! audioStream = liftResult <| getAudioStream methodName
             let! mirage = liftResult <| getMirage methodName
-            //iter audioStream.StreamAudioFromFile <| getRandomRecording random mirage.mimickingPlayer.voicePlayerState.Name
+            let! dissonance = liftResult <| getDissonance methodName
+            let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
+            iter (audioStream: AudioStream).StreamAudioFromFile recording
             return! runImitationLoop
         }
 
     member this.Start() =
+        set Dissonance <| UnityEngine.Object.FindObjectOfType<DissonanceComms>()
         let audioStream = this.gameObject.GetComponent<AudioStream>()
         set AudioStream audioStream
         let audioSource = audioStream.GetAudioSource()

@@ -83,10 +83,10 @@ let private getRecordings voiceId =
 /// Get a random recording for the given player.
 /// </summary>
 let getRandomRecording (dissonance: DissonanceComms) (random: Random) (player: PlayerControllerB) =
-    let voiceId = getVoiceId dissonance player
-    let recordings = getRecordings voiceId
-    if recordings.Length = 0 then None
-    else Some recordings[random.Next recordings.Length]
+    getVoiceId dissonance player >>= fun voiceId ->
+        let recordings = getRecordings voiceId
+        if recordings.Length = 0 then None
+        else Some recordings[random.Next recordings.Length]
 
 /// <summary>
 /// Delete the directory containing recordings, ignoring the <b>IOException</b> if it gets thrown.
@@ -95,6 +95,7 @@ let deleteRecordings () =
     try
         Directory.Delete($"{RecordingDirectory}", true)
     with
+        | :? IOException -> ()
         | error -> logError $"Failed to delete recording folder: {error}"
 
 /// <summary>
