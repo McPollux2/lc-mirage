@@ -40,7 +40,7 @@ type RecordAudio() =
     /// The host's recording file to write to.
     /// This is set to <b>None</b> whenever the host is muted.
     /// </summary>
-    static let HostRecording : Ref<Option<AudioFileWriter>>= ref None
+    static let HostRecording : Field<AudioFileWriter> = ref None
 
     static let RecordingManager = ref None
     static let getLocalPlayer () = GameNetworkManager.Instance.localPlayerController
@@ -63,11 +63,11 @@ type RecordAudio() =
 
     [<HarmonyPatch(typeof<StartOfRound>, "RefreshPlayerVoicePlaybackObjects")>]
     static member Transpiler (instructions: IEnumerable<CodeInstruction>) =
+        // Call the method specified in the code instruction, at the end of RefreshPlayerVoicePlaybackObjects.
         let targetMethod = AccessTools.Method(typeof<AudioSource>, "set_outputAudioMixerGroup")
         seq {
             for instruction in instructions do
                 if instruction.Calls targetMethod then
-                    // These instructions calls the ``start recording non-host player`` method.
                     yield new CodeInstruction(OpCodes.Ldloc_1)
                     yield new CodeInstruction(
                         OpCodes.Call,
@@ -142,10 +142,26 @@ type RecordAudio() =
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BufferedDecoder>, "Read")>]
     static member ``record non-host player's audio``(__instance: BufferedDecoder, frame: ArraySegment<float32>) =
-        let mutable recording = null
-        if clientRecordings.TryGetValue(__instance, &recording) then
+        ignore <| monad' {
+            let! recordingManager = get RecordingManager
+            let getClientRecording () =
+                let mutable recording = null
+                ignore <| clientRecordings.TryGetValue(__instance, &recording)
+                Option.ofObj recording
+            let! recording =
+                monad' {
+                    match getClientRecording() with
+                        | Some recording -> recording
+                        |  None ->
+                            let! voiceId = getVoiceId recordingManager.dissonance <| getLocalPlayer()
+                            let! fileName = createRecordingName recordingManager voiceId
+                            let recording = new AudioFileWriter(fileName, __instance.WaveFormat)
+                            clientRecordings.Add(__instance, recording)
+                            recording
+                }
             logInfo $"recording non-host audio (read)"
-            recording.WriteSamples(frame)
+            recording.WriteSamples frame
+        }
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BufferedDecoder>, "Reset")>]
@@ -153,3 +169,4 @@ type RecordAudio() =
         let mutable recording = null
         if clientRecordings.TryGetValue(__instance, &recording) then
             recording.Dispose()
+            ignore <| clientRecordings.Remove __instance
