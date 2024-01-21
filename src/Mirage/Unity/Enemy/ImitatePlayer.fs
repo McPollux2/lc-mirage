@@ -49,8 +49,10 @@ type ImitatePlayer() =
             let! audioStream = get AudioStream
             let! mirage = get Mirage
             let! dissonance = get Dissonance
+            //try
             let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
             iter (audioStream: AudioStream).StreamAudioFromFile recording
+            //with | _ -> ()
             //(audioStream: AudioStream).StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/whistle.wav"
         }
 
@@ -60,7 +62,7 @@ type ImitatePlayer() =
                 imitatePlayer()
             with | error ->
                 logInfo $"Failed to imitate player: {error}"
-            let delay = random.Next(10000, 20001) // Play voice every 10-20 secs
+            let delay = 10000 // random.Next(10000, 20001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             return! runImitationLoop
         }
@@ -71,8 +73,8 @@ type ImitatePlayer() =
         set AudioStream audioStream
         let audioSource = audioStream.GetAudioSource()
         audioSource.spatialBlend <- 1f
-        let lowPassFilter = audioSource.gameObject.AddComponent<AudioLowPassFilter>()
-        lowPassFilter.cutoffFrequency <- 20000f
+        //let lowPassFilter = audioSource.gameObject.AddComponent<AudioLowPassFilter>()
+        //lowPassFilter.cutoffFrequency <- 20000f
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
         set Mirage mirage
         if this.IsHost then
