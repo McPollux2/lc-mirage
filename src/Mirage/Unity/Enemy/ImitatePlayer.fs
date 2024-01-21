@@ -20,18 +20,16 @@ module Mirage.Unity.Enemy.ImitatePlayer
 
 open Dissonance
 open FSharpPlus
-open FSharpPlus.Data
+open UnityEngine
 open Unity.Netcode
 open System.Threading
-open UnityEngine
-open Mirage.Core.File
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.AudioStream.Component
 open Mirage.Unity.RecordingManager
 
-let private get<'A> : Getter<'A> = getter "ImitatePlayer"
+let private get<'A> (field: Field<'A>) = field.Value
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.
@@ -42,25 +40,28 @@ type ImitatePlayer() =
     let random = new System.Random()
     let canceller = new CancellationTokenSource()
 
-    let Dissonance = ref None
-    let AudioStream = ref None
-    let Mirage = ref None
-    
-    let getDissonance = get Dissonance "Dissonance"
-    let getAudioStream = get AudioStream "AudioStream"
-    let getMirage = get Mirage "Mirage"
+    let Dissonance : Field<DissonanceComms> = ref None
+    let AudioStream : Field<AudioStream> = ref None
+    let Mirage : Field<MaskedPlayerEnemy> = ref None
 
-    let rec runImitationLoop =
-        monad {
-            let methodName = "runImitationLoop"
-            let delay = random.Next(10000, 20001) // Play voice every 10-20 secs
-            return! liftAsync <| Async.Sleep delay
-            let! audioStream = liftResult <| getAudioStream methodName
-            let! mirage = liftResult <| getMirage methodName
-            let! dissonance = liftResult <| getDissonance methodName
+    let imitatePlayer () =
+        ignore <| monad' {
+            let! audioStream = get AudioStream
+            let! mirage = get Mirage
+            let! dissonance = get Dissonance
             let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
             iter (audioStream: AudioStream).StreamAudioFromFile recording
             //(audioStream: AudioStream).StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/whistle.wav"
+        }
+
+    let rec runImitationLoop =
+        async {
+            try
+                imitatePlayer()
+            with | error ->
+                logInfo $"Failed to imitate player: {error}"
+            let delay = random.Next(10000, 20001) // Play voice every 10-20 secs
+            return! liftAsync <| Async.Sleep delay
             return! runImitationLoop
         }
 
@@ -75,10 +76,8 @@ type ImitatePlayer() =
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
         set Mirage mirage
         if this.IsHost then
-            runImitationLoop
-                |> ResultT.run
-                |> map handleResult
-                |> toUniTask_ canceller.Token
+            toUniTask_ canceller.Token runImitationLoop
+            ignore imitatePlayer
 
     override this.OnDestroy() =
         if this.IsHost then

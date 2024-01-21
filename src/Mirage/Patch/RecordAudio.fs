@@ -33,7 +33,7 @@ open System.Collections.Generic
 open UnityEngine
 open System.Reflection.Emit
 
-let private get<'A> (field: Field<'A>) = Option.ofResult <| getter zero field zero zero
+let private get<'A> (field: Field<'A>) = field.Value
 
 type RecordAudio() =
     /// <summary>
@@ -130,11 +130,11 @@ type RecordAudio() =
     [<HarmonyPatch(typeof<BufferedDecoder>, "Prepare")>]
     static member ``prepare to record for non-host players``(__instance: BufferedDecoder, context: SessionContext) =
         ignore <| monad' {
-            logInfo $"recording non-host audio (prepare): {context.PlayerName}"
+            //logInfo $"recording non-host audio (prepare): {context.PlayerName}"
             let! recordingManager = get RecordingManager
-            logInfo $"recording non-host audio (after recordingManager)"
+            //logInfo $"recording non-host audio (after recordingManager)"
             let! fileName = createRecordingName recordingManager context.PlayerName
-            logInfo $"recording non-host audio (after fileName)"
+            //logInfo $"recording non-host audio (after fileName)"
             let recording = new AudioFileWriter(fileName, __instance._waveFormat)
             clientRecordings.Add(__instance, recording)
         }
