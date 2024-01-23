@@ -50,6 +50,7 @@ type ImitatePlayer() =
             let! mirage = get Mirage
             let! dissonance = get Dissonance
             //try
+            logInfo $"starting mimic audio for player: {getVoiceId dissonance (mirage: MaskedPlayerEnemy).mimickingPlayer}"
             let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
             iter (audioStream: AudioStream).StreamAudioFromFile recording
             //with | _ -> ()
@@ -61,13 +62,14 @@ type ImitatePlayer() =
             try
                 imitatePlayer()
             with | error ->
-                logInfo $"Failed to imitate player: {error}"
+                logError $"Failed to imitate player: {error}"
             let delay = 10000 // random.Next(10000, 20001) // Play voice every 10-20 secs
             return! liftAsync <| Async.Sleep delay
             return! runImitationLoop
         }
 
     member this.Start() =
+        logInfo "ImitatePlayer#Start is called"
         set Dissonance <| UnityEngine.Object.FindObjectOfType<DissonanceComms>()
         let audioStream = this.gameObject.GetComponent<AudioStream>()
         set AudioStream audioStream

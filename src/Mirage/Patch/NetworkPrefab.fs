@@ -19,6 +19,7 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
+open UnityEngine
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.Enemy.ImitatePlayer
@@ -34,8 +35,9 @@ type RegisterPrefab() =
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``register network prefab``(__instance: GameNetworkManager) =
         handleResult <| monad' {
+            let networkManager = __instance.GetComponent<NetworkManager>()
             let! miragePrefab = 
-                findNetworkPrefab<MaskedPlayerEnemy> __instance
+                findNetworkPrefab<MaskedPlayerEnemy> networkManager
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
             miragePrefab.enemyType.enemyName <- "Mirage"
             miragePrefab.enemyType.isDaytimeEnemy <- true
@@ -45,9 +47,12 @@ type RegisterPrefab() =
                     typeof<ImitatePlayer>
                 ]
             set MiragePrefab miragePrefab
-            let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> __instance
-            flip iter maskedPrefabs <| fun maskedItem ->
-                ignore <| maskedItem.gameObject.AddComponent<MirageSpawner>()
+            let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> networkManager
+            flip iter maskedPrefabs <| fun mask ->
+                //mask.GetComponentsInChildren<Transform>()
+                //    |> filter _.name.StartsWith("HeadMask")
+                //    |> iter _.gameObject.SetActive(false)
+                ignore <| mask.gameObject.AddComponent<MirageSpawner>()
         }
 
     [<HarmonyPostfix>]

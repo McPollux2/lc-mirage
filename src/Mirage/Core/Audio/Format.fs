@@ -46,10 +46,12 @@ let convertFrameToPCM (decompressor: IMp3FrameDecompressor) (frameData: array<by
 /// Convert the given <b>.wav</b> audio file to a <b>.mp3</b> in-memory.<br />
 /// Warning: You will need to call <b>Mp3FileReader#Dispose</b> and <b>Mp3fileReader#mp3Stream#Dispose</b> yourself.
 /// </summary>
-let convertToMp3 (audioReader: WaveFileReader) : Mp3FileReader =
+let convertToMp3 (audioReader: AudioFileReader) : Mp3FileReader =
     let mp3Stream = new MemoryStream()
-    use mp3Writer = new LameMP3FileWriter(mp3Stream, audioReader.WaveFormat, LAMEPreset.ABR_16)
+    use mp3Writer = new LameMP3FileWriter(mp3Stream, audioReader.WaveFormat, LAMEPreset.STANDARD)
     audioReader.CopyTo mp3Writer
+    //let mp3Audio = mp3Stream.ToArray()
+    mp3Writer.Flush()
     mp3Stream.Position <- 0
     new Mp3FileReader(mp3Stream)
 

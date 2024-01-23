@@ -70,8 +70,8 @@ let startServer (sendFrame: FrameData -> Unit) (onFinish: Unit -> Unit) (filePat
         let! audioReader =
             forkReturn <|
                 async {
-                    use waveReader = new WaveFileReader(filePath)
-                    return convertToMp3 waveReader
+                    use audioReader = new AudioFileReader(filePath)
+                    return convertToMp3 audioReader
                 }
         let server =
             {   sendFrame = sendFrame

@@ -46,20 +46,34 @@ type RecordAudio() =
     static let getLocalPlayer () = GameNetworkManager.Instance.localPlayerController
 
     /// <summary>
-    /// Recording files received from clients.
+    /// Recording files received from clients. The table value contains the voice id and audio file to write to.
     /// </summary>
-    static let clientRecordings = ConditionalWeakTable<BufferedDecoder, AudioFileWriter>()
+    static let clientRecordings = ConditionalWeakTable<BufferedDecoder, string * Option<AudioFileWriter>>()
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<DissonanceComms>, "Start")>]
+    static member ``initialize recording manager``(__instance: DissonanceComms) =
+        if GameNetworkManager.Instance.isHostingGame then
+            logInfo "hosting game. creating recording manager"
+            let recordingManager = defaultRecordingManager __instance
+            set RecordingManager recordingManager
+            let localPlayer = getLocalPlayer()
+            //logInfo $"local player: {getVoiceId dissonance localPlayer}"
+            set RecordingManager <| flip startRecording localPlayer recordingManager
+            logInfo "finished creating recording manager"
+            //defaultRecordingManager dissonance
+            //    |> flip startRecording (getLocalPlayer())
+            //    |> set RecordingManager
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
     static member ``initialize recording manager with host player added to recording manager``(__instance: StartOfRound) =
         if __instance.IsHost then
-            let dissonance = UnityEngine.Object.FindObjectOfType<DissonanceComms>()
-            deleteRecordings()
-            defaultRecordingManager dissonance
-                |> flip startRecording (getLocalPlayer())
-                |> set RecordingManager
+            // TODO: dispose all audio file writers.
             clientRecordings.Clear()
+
+            logInfo $"game started. deleting recordings"
+            deleteRecordings()
 
     [<HarmonyPatch(typeof<StartOfRound>, "RefreshPlayerVoicePlaybackObjects")>]
     static member Transpiler (instructions: IEnumerable<CodeInstruction>) =
@@ -82,13 +96,24 @@ type RecordAudio() =
     // This does not have patch annotations because it's called by the above transpiler.
     static member ``add non-host player to recording manager``(player: PlayerControllerB) =
         if not player.isPlayerDead then
-            get RecordingManager
-                |>> flip startRecording player
-                |> setOption RecordingManager
+            logInfo $"adding non-host player: {player.voicePlayerState.Name}"
+            ignore <| monad' {
+                //get RecordingManager
+                //    |>> flip startRecording player
+                //    |> setOption RecordingManager
+                let! recordingManager = get RecordingManager
+                logInfo "after getting recording manager (add non-host to recording manager)"
+                set RecordingManager <| startRecording recordingManager player
+                logInfo $"finished adding non-host player: {player.voicePlayerState.Name}"
+            }
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
     static member ``stop recording player on death``(__instance: PlayerControllerB) =
+        if isNull __instance.voicePlayerState then
+            logInfo "stopping record for player (probably host since voiceplayerstate is null)"
+        else
+            logInfo $"stopping recording for player: {__instance.voicePlayerState.Name}"
         get RecordingManager
             |>> flip stopRecording __instance
             |> setOption RecordingManager
@@ -100,21 +125,32 @@ type RecordAudio() =
             let! recordingManager = get RecordingManager
             if recordingManager.dissonance.IsMuted then
                 let! recording = get HostRecording
+                logInfo "got recording. disposing."
                 setNone HostRecording
                 recording.Dispose()
+                logInfo "done stopping host audio"
             else
                 let! recording =
                     monad' {
                         match get HostRecording with
-                            | Some recording -> recording
+                            | Some recording ->
+                                logInfo "got previous recording. returning"
+                                recording
                             |  None ->
+                                logInfo "getting voice id"
                                 let! voiceId = getVoiceId recordingManager.dissonance <| getLocalPlayer()
+                                logInfo "getting file name"
                                 let! fileName = createRecordingName recordingManager voiceId
+                                logInfo $"got file name: {fileName}"
                                 let recording = new AudioFileWriter(fileName, __instance.OutputFormat)
+                                logInfo $"creating recording."
                                 set HostRecording recording
+                                logInfo $"set recording. finished"
                                 recording
                     }
+                logInfo "got recording. writing smaples."
                 recording.WriteSamples(new ArraySegment<float32>(buffer))
+                logInfo "done recording host"
         }
 
     [<HarmonyPrefix>]
@@ -129,44 +165,37 @@ type RecordAudio() =
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BufferedDecoder>, "Prepare")>]
     static member ``prepare to record for non-host players``(__instance: BufferedDecoder, context: SessionContext) =
-        ignore <| monad' {
-            //logInfo $"recording non-host audio (prepare): {context.PlayerName}"
-            let! recordingManager = get RecordingManager
-            //logInfo $"recording non-host audio (after recordingManager)"
-            let! fileName = createRecordingName recordingManager context.PlayerName
-            //logInfo $"recording non-host audio (after fileName)"
-            let recording = new AudioFileWriter(fileName, __instance._waveFormat)
-            clientRecordings.Add(__instance, recording)
-        }
+        logInfo $"new player voiceid added: {context.PlayerName}"
+        clientRecordings.Add(__instance, (context.PlayerName, None))
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BufferedDecoder>, "Read")>]
     static member ``record non-host player's audio``(__instance: BufferedDecoder, frame: ArraySegment<float32>) =
         ignore <| monad' {
             let! recordingManager = get RecordingManager
-            let getClientRecording () =
-                let mutable recording = null
-                ignore <| clientRecordings.TryGetValue(__instance, &recording)
-                Option.ofObj recording
             let! recording =
                 monad' {
-                    match getClientRecording() with
-                        | Some recording -> recording
-                        |  None ->
-                            let! voiceId = getVoiceId recordingManager.dissonance <| getLocalPlayer()
+                    let mutable value = zero
+                    ignore <| clientRecordings.TryGetValue(__instance, &value)
+                    match value with
+                        | voiceId, None -> 
+                            logInfo $"creating new recording non-host. voiceId: {voiceId}"
                             let! fileName = createRecordingName recordingManager voiceId
+                            logInfo $"created file: {fileName}"
                             let recording = new AudioFileWriter(fileName, __instance.WaveFormat)
-                            clientRecordings.Add(__instance, recording)
+                            clientRecordings.AddOrUpdate(__instance, (voiceId, Some recording))
+                            recording
+                        | _, Some recording ->
+                            logInfo "recording already exists. returning.."
                             recording
                 }
-            logInfo $"recording non-host audio (read)"
-            recording.WriteSamples frame
+            (recording: AudioFileWriter).WriteSamples frame
         }
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BufferedDecoder>, "Reset")>]
     static member ``dispose client recording when finished writing``(__instance: BufferedDecoder) =
-        let mutable recording = null
-        if clientRecordings.TryGetValue(__instance, &recording) then
-            recording.Dispose()
+        let mutable value = zero
+        if clientRecordings.TryGetValue(__instance, &value) then
+            ignore << map dispose <| snd value
             ignore <| clientRecordings.Remove __instance

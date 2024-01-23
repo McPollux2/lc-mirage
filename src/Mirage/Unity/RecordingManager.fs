@@ -84,6 +84,7 @@ let private getRecordings voiceId =
 /// </summary>
 let getRandomRecording (dissonance: DissonanceComms) (random: Random) (player: PlayerControllerB) =
     getVoiceId dissonance player >>= fun voiceId ->
+        logInfo $"got recording for player voiceid: {voiceId}"
         let recordings = getRecordings voiceId
         if recordings.Length = 0 then None
         else Some recordings[random.Next recordings.Length]
@@ -102,6 +103,7 @@ let deleteRecordings () =
 /// Start recording a player.
 /// </summary>
 let startRecording (manager: RecordingManager) (player: PlayerControllerB) =
+    logInfo $"added to recordings list: {getVoiceId manager.dissonance player}"
     { manager with playerManager = addPlayer manager.playerManager player }
 
 /// <summary>
@@ -109,3 +111,9 @@ let startRecording (manager: RecordingManager) (player: PlayerControllerB) =
 /// </summary>
 let stopRecording (manager: RecordingManager) (player: PlayerControllerB) =
     { manager with playerManager = removePlayer manager.playerManager player }
+
+/// <summary>
+/// Whether or not the given voice id should be recorded or not.
+/// </summary>
+let isRecording (manager: RecordingManager) : string -> bool =
+    isPlayerKeyTracked manager.playerManager

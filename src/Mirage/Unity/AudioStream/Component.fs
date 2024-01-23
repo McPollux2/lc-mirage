@@ -64,6 +64,7 @@ type AudioStream() =
         stopAudioClient()
 
     member this.Awake() =
+        logInfo "AudioStream#Awake is called"
         let audioSource = this.gameObject.AddComponent<AudioSource>()
         audioSource.dopplerLevel <- 0f
         audioSource.maxDistance <- 50f

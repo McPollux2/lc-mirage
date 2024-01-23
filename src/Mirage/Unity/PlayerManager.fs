@@ -65,3 +65,9 @@ let getPlayer (manager: PlayerManager<'Key>) : 'Key -> Option<PlayerControllerB>
 /// </summary>
 let isPlayerTracked (manager: PlayerManager<'Key>) (player: PlayerControllerB) : bool =
     Option.isSome (getPlayer manager =<< manager.toKey player)
+
+/// <summary>
+/// Check if the given player is tracked or not (by its key).
+/// </summary>
+let isPlayerKeyTracked (manager: PlayerManager<'Key>) : 'Key -> bool =
+    flip Map.containsKey manager.players

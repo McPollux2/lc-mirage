@@ -83,7 +83,7 @@ type SpawnMirage() =
     static member ``save mask prefab for later use``(__instance: GameNetworkManager) =
         handleResult <| monad' {
             let! maskItem =
-                findNetworkPrefab<HauntedMaskItem> __instance
+                findNetworkPrefab<HauntedMaskItem> (__instance.GetComponent<NetworkManager>())
                     |> Option.toResultWith "HauntedMaskItem network prefab is missing. This is likely due to a mod incompatibility."
             set MaskItemPrefab maskItem
         }
@@ -120,7 +120,7 @@ type SpawnMirage() =
     static member ``disable mirage hands out``() = false
 
     [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Awake")>]
+    [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Start")>]
     static member ``remove mask texture``(__instance: MaskedPlayerEnemy) =
         __instance.GetComponentsInChildren<Transform>()
             |> filter _.name.StartsWith("HeadMask")
