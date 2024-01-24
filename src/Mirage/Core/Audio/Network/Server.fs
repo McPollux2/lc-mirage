@@ -14,16 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Unity.AudioStream.Server
+module Mirage.Core.Audio.Network.Server
 
 open NAudio.Wave
 open FSharpPlus
 open FSharpx.Control
 open System
 open System.Threading
+open Stream
 open Mirage.Core.Audio.Data
 open Mirage.Core.Logger
-open Mirage.Core.Audio.Stream
 open Mirage.Core.Monad
 open Mirage.Core.Audio.Format
 

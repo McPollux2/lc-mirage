@@ -20,13 +20,12 @@ module Mirage.Unity.Enemy.ImitatePlayer
 
 open Dissonance
 open FSharpPlus
-open UnityEngine
 open Unity.Netcode
 open System.Threading
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
-open Mirage.Unity.AudioStream.Component
+open Mirage.Unity.AudioStream
 open Mirage.Unity.RecordingManager
 
 let private get<'A> (field: Field<'A>) = field.Value
@@ -40,9 +39,9 @@ type ImitatePlayer() =
     let random = new System.Random()
     let canceller = new CancellationTokenSource()
 
-    let Dissonance : Field<DissonanceComms> = ref None
-    let AudioStream : Field<AudioStream> = ref None
-    let Mirage : Field<MaskedPlayerEnemy> = ref None
+    let Dissonance = ref None
+    let AudioStream = ref None
+    let Mirage = ref None
 
     let imitatePlayer () =
         ignore <| monad' {

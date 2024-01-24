@@ -83,11 +83,11 @@
     <Compile Include="Mirage/Unity/RecordingManager.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
-    <Compile Include="Mirage/Core/Audio/Stream.fs" />
+    <Compile Include="Mirage/Core/Audio/Network/Stream.fs" />
     <Compile Include="Mirage/Unity/Network.fs" />
-    <Compile Include="Mirage/Unity/AudioStream/Client.fs" />
-    <Compile Include="Mirage/Unity/AudioStream/Server.fs" />
-    <Compile Include="Mirage/Unity/AudioStream/Component.fs" />
+    <Compile Include="Mirage/Core/Audio/Network/Client.fs" />
+    <Compile Include="Mirage/Core/Audio/Network/Server.fs" />
+    <Compile Include="Mirage/Unity/AudioStream.fs" />
     <Compile Include="Mirage/Unity/Enemy/ImitatePlayer.fs" />
     <Compile Include="Mirage/Unity/Enemy/MirageSpawner.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />

@@ -23,7 +23,7 @@ open UnityEngine
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.Enemy.ImitatePlayer
-open Mirage.Unity.AudioStream.Component
+open Mirage.Unity.AudioStream
 open Mirage.Unity.Network
 open Mirage.Unity.Enemy.MirageSpawner
 
@@ -36,22 +36,22 @@ type RegisterPrefab() =
     static member ``register network prefab``(__instance: GameNetworkManager) =
         handleResult <| monad' {
             let networkManager = __instance.GetComponent<NetworkManager>()
-            let! miragePrefab = 
+            let! mirage = 
                 findNetworkPrefab<MaskedPlayerEnemy> networkManager
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
-            miragePrefab.enemyType.enemyName <- "Mirage"
-            miragePrefab.enemyType.isDaytimeEnemy <- true
-            miragePrefab.enemyType.isOutsideEnemy <- true
-            iter (miragePrefab.gameObject.AddComponent >> ignore)
+            mirage.enemyType.enemyName <- "Mirage"
+            mirage.enemyType.isDaytimeEnemy <- true
+            mirage.enemyType.isOutsideEnemy <- true
+            mirage.GetComponentsInChildren<Transform>()
+                |> filter _.name.StartsWith("HeadMask")
+                |> iter _.gameObject.SetActive(false)
+            iter (mirage.gameObject.AddComponent >> ignore)
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>
                 ]
-            set MiragePrefab miragePrefab
+            set MiragePrefab mirage
             let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> networkManager
             flip iter maskedPrefabs <| fun mask ->
-                //mask.GetComponentsInChildren<Transform>()
-                //    |> filter _.name.StartsWith("HeadMask")
-                //    |> iter _.gameObject.SetActive(false)
                 ignore <| mask.gameObject.AddComponent<MirageSpawner>()
         }
 
