@@ -27,6 +27,8 @@ open Mirage.PluginInfo
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
+open Mirage.Patch.SyncConfig
+open Mirage.Core.Config
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -34,12 +36,14 @@ type Plugin() =
 
     member this.Awake() =
         initNetcodePatcher()
+        initConfig this.Config
         ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
         let harmony = new Harmony(pluginId)
         iter (unbox<Type> >> harmony.PatchAll) 
             [   typeof<RegisterPrefab>
                 typeof<RecordAudio>
                 typeof<SpawnMirage>
+                typeof<SyncConfig>
             ]
         harmony.Patch(
             original =

@@ -27,6 +27,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.AudioStream
 open Mirage.Core.Audio.Recording
+open Mirage.Core.Config
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.

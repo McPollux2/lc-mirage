@@ -41,7 +41,8 @@ type RecordAudio() =
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<StartOfRound>, "Awake")>]
-    static member ``stop recording when a new round starts``() = roundStarted <- false
+    static member ``stop recording when a new round starts``() =
+        roundStarted <- false
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "ResetPlayersLoadedValueClientRpc")>]

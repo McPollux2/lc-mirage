@@ -52,6 +52,7 @@ type SpawnMirage() =
             let mirageSpawner = maskItem.GetComponent<MirageSpawner>()
             mirageSpawner.SetMaskItem maskItem
             mirageSpawner.SpawnMirage()
+            maskItem.NetworkObject.Despawn()
         }
 
     [<HarmonyPostfix>]
