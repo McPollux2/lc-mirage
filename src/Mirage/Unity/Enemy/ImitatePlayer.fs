@@ -18,7 +18,7 @@ module Mirage.Unity.Enemy.ImitatePlayer
 
 #nowarn "40"
 
-open Dissonance
+open System
 open FSharpPlus
 open Unity.Netcode
 open System.Threading
@@ -26,9 +26,7 @@ open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.AudioStream
-open Mirage.Unity.RecordingManager
-
-let private get<'A> (field: Field<'A>) = field.Value
+open Mirage.Core.Audio.Recording
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.
@@ -36,53 +34,47 @@ let private get<'A> (field: Field<'A>) = field.Value
 type ImitatePlayer() =
     inherit NetworkBehaviour()
 
-    let random = new System.Random()
+    let random = new Random()
     let canceller = new CancellationTokenSource()
 
-    let Dissonance = ref None
-    let AudioStream = ref None
-    let Mirage = ref None
+    let AudioStream: Field<AudioStream>  = field()
+    let Mirage: Field<MaskedPlayerEnemy> = field()
 
-    let imitatePlayer () =
+    let imitatePlayer (this: ImitatePlayer) =
         ignore <| monad' {
-            let! audioStream = get AudioStream
-            let! mirage = get Mirage
-            let! dissonance = get Dissonance
-            //try
-            logInfo $"starting mimic audio for player: {getVoiceId dissonance (mirage: MaskedPlayerEnemy).mimickingPlayer}"
-            let recording = getRandomRecording dissonance random (mirage: MaskedPlayerEnemy).mimickingPlayer
-            iter (audioStream: AudioStream).StreamAudioFromFile recording
-            //with | _ -> ()
-            //(audioStream: AudioStream).StreamAudioFromFile $"{RootDirectory}/BepInEx/plugins/asset/whistle.wav"
+            let! audioStream = getValue AudioStream
+            let! mirage = getValue Mirage
+            flip iter (getRandomRecording random) <| fun recording ->
+                try
+                    if this.IsHost then
+                        audioStream.StreamAudioFromFile recording
+                    else
+                        audioStream.UploadAndStreamAudioFromFile(mirage.mimickingPlayer.actualClientId, recording)
+                with | error ->
+                    logError $"Failed to imitate player: {error}"
         }
 
-    let rec runImitationLoop =
+    let rec runImitationLoop this =
         async {
             try
-                imitatePlayer()
+                imitatePlayer this
             with | error ->
                 logError $"Failed to imitate player: {error}"
-            let delay = 10000 // random.Next(10000, 20001) // Play voice every 10-20 secs
+            let delay = random.Next(10000, 15001) // Play voice every 10-15 secs
             return! liftAsync <| Async.Sleep delay
-            return! runImitationLoop
+            return! runImitationLoop this
         }
 
     member this.Start() =
-        logInfo "ImitatePlayer#Start is called"
-        set Dissonance <| UnityEngine.Object.FindObjectOfType<DissonanceComms>()
         let audioStream = this.gameObject.GetComponent<AudioStream>()
         set AudioStream audioStream
         let audioSource = audioStream.GetAudioSource()
         audioSource.spatialBlend <- 1f
-        //let lowPassFilter = audioSource.gameObject.AddComponent<AudioLowPassFilter>()
-        //lowPassFilter.cutoffFrequency <- 20000f
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
-        set Mirage mirage
-        if this.IsHost then
-            toUniTask_ canceller.Token runImitationLoop
-            ignore imitatePlayer
+        setNullable Mirage mirage
+        if mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
+            toUniTask_ canceller.Token <| runImitationLoop this
 
-    override this.OnDestroy() =
-        if this.IsHost then
-            canceller.Cancel()
-            dispose canceller
+    override _.OnDestroy() =
+        canceller.Cancel()
+        dispose canceller

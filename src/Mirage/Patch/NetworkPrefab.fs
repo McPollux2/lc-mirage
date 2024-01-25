@@ -28,7 +28,7 @@ open Mirage.Unity.Network
 open Mirage.Unity.Enemy.MirageSpawner
 
 type RegisterPrefab() =
-    static let MiragePrefab = ref None
+    static let MiragePrefab = field()
     static let getMiragePrefab = getter "InitializePrefab" MiragePrefab "MiragePrefab"
 
     [<HarmonyPostfix>]
@@ -42,9 +42,6 @@ type RegisterPrefab() =
             mirage.enemyType.enemyName <- "Mirage"
             mirage.enemyType.isDaytimeEnemy <- true
             mirage.enemyType.isOutsideEnemy <- true
-            mirage.GetComponentsInChildren<Transform>()
-                |> filter _.name.StartsWith("HeadMask")
-                |> iter _.gameObject.SetActive(false)
             iter (mirage.gameObject.AddComponent >> ignore)
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>

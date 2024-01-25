@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  *)
-module Mirage.Core.Audio.Network.Client
+module Mirage.Core.Audio.Network.Receiver
 
 open FSharpPlus
 open UnityEngine
@@ -28,9 +28,9 @@ open Mirage.Core.Audio.Format
 open Mirage.Core.Logger
 
 /// <summary>
-/// Handles the client side of audio streaming.
+/// Receive audio from <b>AudioSender</b>.
 /// </summary>
-type AudioClient =
+type AudioReceiver =
     private
         {   audioSource: AudioSource
             pcmHeader: PcmHeader
@@ -41,15 +41,15 @@ type AudioClient =
         }
 
 /// <summary>
-/// Stop the audio client. This must be called to cleanup resources.
+/// Stop the audio receiver. This must be called to cleanup resources.
 /// </summary>
-let stopClient (client: AudioClient) =
-    if not client.stopped then
-        client.stopped <- true
-        client.audioSource.Stop()
-        UnityEngine.Object.Destroy client.audioSource.clip
-        client.audioSource.clip <- null
-        dispose client.decompressor
+let stopReceiver (receiver: AudioReceiver) =
+    if not receiver.stopped then
+        receiver.stopped <- true
+        receiver.audioSource.Stop()
+        UnityEngine.Object.Destroy receiver.audioSource.clip
+        receiver.audioSource.clip <- null
+        dispose receiver.decompressor
 
 /// <summary>
 /// Start receiving audio data from the server, and playing it back live.
@@ -57,7 +57,7 @@ let stopClient (client: AudioClient) =
 /// Note: This will not stop the <b>AudioSource</b> if it's currently playing.
 /// You will need to handle that yourself at the callsite.
 /// </summary>
-let startClient (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioClient =
+let startReceiver (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioReceiver =
     audioSource.clip <-
         AudioClip.Create(
             pluginId,
@@ -83,39 +83,39 @@ let startClient (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioClient 
     }
 
 /// <summary>
-/// Set the audio client frame data, and play it if the audio source hasn't started yet.
+/// Set the audio receiver frame data, and play it if the audio source hasn't started yet.
 /// </summary>
-let setFrameData (client: AudioClient) (frameData: FrameData) =
+let setFrameData (receiver: AudioReceiver) (frameData: FrameData) =
     try
-        let pcmData = convertFrameToPCM client.decompressor frameData.rawData
+        let pcmData = decompressFrame receiver.decompressor frameData.rawData
         if pcmData.Length > 0 then
-            ignore <| client.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
-        if not client.audioSource.isPlaying then
-            client.audioSource.Play()
-        client.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            ignore <| receiver.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
+        if not receiver.audioSource.isPlaying then
+            receiver.audioSource.Play()
+        receiver.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     with | error ->
         logError $"Failed to set frame data: {error}"
-        stopClient client
+        stopReceiver receiver
 
 /// <summary>
 /// Set a timeout for the acceptable amount of time in between <b>setFrameData</b> calls.
-/// If the timeout is exceeded, the client will stop.
+/// If the timeout is exceeded, the receiver will stop.
 /// </summary>
-let startTimeout (client: AudioClient) (timeout: int<second>) : Task<Unit> =
+let startTimeout (receiver: AudioReceiver) (timeout: int<second>) : Task<Unit> =
     task {
-        client.timeoutEnabled <- true
+        receiver.timeoutEnabled <- true
         let timeoutMs = int64 timeout * 1000L
-        client.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let mutable currentTime = client.startTime
-        while not client.stopped && client.timeoutEnabled && currentTime - client.startTime < timeoutMs do
+        receiver.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        let mutable currentTime = receiver.startTime
+        while not receiver.stopped && receiver.timeoutEnabled && currentTime - receiver.startTime < timeoutMs do
             do! Async.Sleep 1000
             currentTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        if not client.stopped && client.timeoutEnabled then
-            logError $"AudioClient timed out after not receiving frame data for {timeout} seconds."
-            stopClient client
+        if not receiver.stopped && receiver.timeoutEnabled then
+            logError $"AudioReceiver timed out after not receiving frame data for {timeout} seconds."
+            stopReceiver receiver
     }
 
 /// <summary>
 /// Disable the timeout started by <b>startTimeout</b>.
 /// </summary>
-let stopTimeout (client: AudioClient) = client.timeoutEnabled <- false
+let stopTimeout (receiver: AudioReceiver) = receiver.timeoutEnabled <- false

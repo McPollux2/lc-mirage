@@ -21,6 +21,7 @@ open UnityEngine
 open Unity.Netcode
 open Cysharp.Threading.Tasks
 open NAudio.Wave
+open System.IO
 open System.Threading
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
 open Mirage.Core.Logger
@@ -29,10 +30,10 @@ open Mirage.Core.Monad
 open Mirage.Unity.Network
 open Mirage.Core.Field
 open Mirage.Core.Audio.Format
-open Mirage.Core.Audio.Network.Server
-open Mirage.Core.Audio.Network.Client
+open Mirage.Core.Audio.Network.Sender
+open Mirage.Core.Audio.Network.Receiver
 
-let [<Literal>] ClientTimeout = 30<second>
+let [<Literal>] ReceiverTimeout = 30<second>
 let private get<'A> : Getter<'A> = getter "AudioStream"
 
 /// <summary>
@@ -41,30 +42,85 @@ let private get<'A> : Getter<'A> = getter "AudioStream"
 type AudioStream() =
     inherit NetworkBehaviour()
 
-    let AudioSource: ref<Option<AudioSource>> = ref None
-    let AudioServer: ref<Option<AudioServer>> = ref None
-    let AudioClient: ref<Option<AudioClient>> = ref None
+    let AudioSource: Field<AudioSource> = field()
+
+    /// <summary>
+    /// <b>Host only.</b><br />
+    /// Send audio to receivers from the host.
+    /// </summary>
+    let AudioSender: Field<AudioSender> = field()
+
+    /// <summary>
+    /// <b>Non-host only.</b><br />
+    /// Receive audio on non-hosts.
+    /// </summary>
+    let AudioReceiver: Field<AudioReceiver> = field()
+    
+    /// <summary>
+    /// <b>Non-host only.</b><br />
+    /// Send audio to the host to broadcast to enemies.
+    /// </summary>
+    let AudioUploader: Field<AudioSender> = field()
+    
+    /// <summary>
+    /// <b>Host only.</b><br />
+    /// The client id to accept audio bytes from, and
+    /// the current upload bytes of compressed audio.
+    /// </summary>
+    let CurrentUpload: Field<uint64 * MemoryStream> = field()
 
     let getAudioSource = get AudioSource "AudioSource"
-    let getAudioServer = get AudioServer "AudioServer"
-    let getAudioClient = get AudioClient "AudioClient"
+    let getAudioSender = get AudioSender "AudioSender"
+    let getAudioReceiver = get AudioReceiver "AudioReciever"
+    let getCurrentUpload = get CurrentUpload "CurrentUpload"
 
-    let stopAudioServer() =
-        iter stopServer AudioServer.Value
-        setNone AudioServer
+    let canceller = new CancellationTokenSource()
 
-    let stopAudioClient() =
-        iter stopClient AudioClient.Value
-        setNone AudioClient
+    let stopAudioSender() =
+        iter stopSender AudioSender.Value
+        setNone AudioSender
+
+    let stopAudioReciever() =
+        iter stopReceiver AudioReceiver.Value
+        setNone AudioReceiver
 
     let stopAll () =
         flip iter AudioSource.Value <| fun audioSource ->
-            UnityEngine.Object.Destroy <| audioSource.clip
-        stopAudioServer()
-        stopAudioClient()
+            UnityEngine.Object.Destroy audioSource.clip
+        stopAudioSender()
+        stopAudioReciever()
+        iter (dispose << snd) CurrentUpload.Value
+
+    /// <summary>
+    /// Play the given audio file locally.
+    /// </summary>
+    let playAudio (filePath: string) =
+        async {
+            let! audioClip =
+                forkReturn <|
+                    async {
+                        use audioReader = new WaveFileReader(filePath)
+                        return convertToAudioClip audioReader
+                    }
+            handleResult <| monad' {
+                let! audioSource = getAudioSource "playAudio"
+                audioSource.Stop()
+                UnityEngine.Object.Destroy audioSource.clip
+                audioSource.clip <- audioClip
+                audioSource.Play()
+            }
+        }
+
+    /// <summary>
+    /// Stream audio from the host to all clients.
+    /// </summary>
+    let streamAudioFromHost (this: AudioStream) (audioReader: Mp3FileReader)  =
+        stopAudioSender()
+        let (audioSender, pcmHeader) = startSender this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
+        set AudioSender audioSender
+        this.InitializeAudioClientRpc pcmHeader
 
     member this.Awake() =
-        logInfo "AudioStream#Awake is called"
         let audioSource = this.gameObject.AddComponent<AudioSource>()
         audioSource.dopplerLevel <- 0f
         audioSource.maxDistance <- 50f
@@ -73,7 +129,11 @@ type AudioStream() =
         audioSource.spread <- 30f
         set AudioSource audioSource
 
-    override _.OnDestroy() = stopAll()
+    override _.OnDestroy() =
+        try canceller.Cancel()
+        with | _ -> ()
+        dispose canceller
+        stopAll()
 
     /// <summary>
     /// Get the attached audio source.
@@ -84,70 +144,61 @@ type AudioStream() =
             | Some audio -> audio
 
     /// <summary>
-    /// Stream the given audio file to all clients. This can only be invoked by the host.
+    /// Stream the given audio file to the host and all clients.<br />
+    /// Note: This can only be invoked by the host.
     /// </summary>
     member this.StreamAudioFromFile(filePath: string) =
-        if not this.IsHost then invalidOp "This method can only be invoked by the host."
-        stopAudioServer()
-        let canceller = new CancellationTokenSource()
-        toUniTask_ canceller.Token <| async {
-            // Stream the audio to all clients.
-            let! (audioServer, pcmHeader) = startServer this.SendFrameClientRpc this.FinishAudioClientRpc filePath
-            set AudioServer audioServer
-            this.InitializeAudioClientRpc pcmHeader
-
-            // Play the audio directly for the host.
-            let! audioClip =
-                forkReturn <|
-                    async {
-                        use audioReader = new WaveFileReader(filePath)
-                        return convertToAudioClip audioReader
-                    }
-            handleResult <| monad' {
-                let! audioSource = getAudioSource "StreamAudioFromFile"
-                audioSource.Stop()
-                UnityEngine.Object.Destroy <| audioSource.clip
-                audioSource.clip <- audioClip
-                audioSource.Play()
-            }
+        handleResult <| monad' {
+            if this.IsHost then
+                toUniTask_ canceller.Token <| async {
+                    let! audioReader =
+                        forkReturn <| async {
+                            use audio = new AudioFileReader(filePath)
+                            return compressAudio audio
+                        }
+                    streamAudioFromHost this audioReader
+                    return! playAudio filePath
+                }
         }
 
     /// <summary>
-    /// Initialize the audio client by sending it the required pcm header.
+    /// Initialize the client by sending it the required pcm header.<br />
+    /// This is followed by the starting the stream on the server.
     /// </summary>
     [<ClientRpc>]
-    member this.InitializeAudioClientRpc(pcmHeader: PcmHeader) =
+    member private this.InitializeAudioClientRpc(pcmHeader: PcmHeader) =
         handleResultWith stopAll <| monad' {
             if not this.IsHost then
-                stopAudioClient()
+                stopAudioReciever()
                 let! audioSource = getAudioSource "InitializeAudioClientRpc"
-                let client = startClient audioSource pcmHeader
-                set AudioClient client
-                startTimeout client ClientTimeout
+                let receiver = startReceiver audioSource pcmHeader
+                set AudioReceiver receiver
+                startTimeout receiver ReceiverTimeout
                     |> _.AsUniTask().Forget()
-                this.InitializeAudioServerRpc <| new ServerRpcParams()
+                // TODO: This is sus for 3+ clients.
+                this.StartBroadcastingServerRpc <| new ServerRpcParams()
         }
 
     /// <summary>
     /// Begin broadcasting audio to all clients.
     /// </summary>
     [<ServerRpc(RequireOwnership = false)>]
-    member this.InitializeAudioServerRpc(serverParams: ServerRpcParams) =
+    member private this.StartBroadcastingServerRpc(serverParams: ServerRpcParams) =
         handleResultWith stopAll <| monad' {
             if this.IsHost && isValidClient this serverParams then
-                let! audioServer = getAudioServer "InitializeAudioServerRpc"
-                broadcastAudio audioServer
+                let! audioSender = getAudioSender "InitializeAudioServerRpc"
+                sendAudio audioSender
         }
 
     /// <summary>
     /// Send audio frame data to the client to play.
     /// </summary>
     [<ClientRpc(Delivery = RpcDelivery.Unreliable)>]
-    member this.SendFrameClientRpc(frameData: FrameData) =
+    member private this.SendFrameClientRpc(frameData: FrameData) =
         handleResult <| monad' {
             if not this.IsHost then
-                let! audioClient = getAudioClient "SendFrameClientRpc"
-                setFrameData audioClient frameData 
+                let! audioReceiver = getAudioReceiver "SendFrameClientRpc"
+                setFrameData audioReceiver frameData 
         }
 
     /// <summary>
@@ -155,4 +206,85 @@ type AudioStream() =
     /// This disables the client timeout to allow it to continue playing all the audio it already has.
     /// </summary>
     [<ClientRpc>]
-    member _.FinishAudioClientRpc() = iter stopTimeout AudioClient.Value
+    member private this.FinishAudioClientRpc() =
+        if not this.IsHost then
+            iter stopTimeout AudioReceiver.Value
+
+    /// <summary>
+    /// Stream the given audio file to the host and all clients.<br />
+    /// Audio is only streamed if the client id matches the sender.
+    /// Note: This can only be invoked by a non-host.
+    /// </summary>
+    member this.UploadAndStreamAudioFromFile(clientId: uint64, filePath: string) =
+        if this.IsHost then
+            logError "This can only be invoked by non-hosts."
+        else
+            iter stopSender AudioUploader.Value
+            setNone AudioUploader
+            toUniTask_ canceller.Token <| async {
+                let! audioReader =
+                    forkReturn <|
+                        async {
+                            use audioReader = new AudioFileReader(filePath)
+                            return compressAudio audioReader
+                        }
+                this.InitializeUploadServerRpc(clientId, new ServerRpcParams())
+                this.UploadFrameServerRpc(audioReader.xingHeader.frame.RawData, new ServerRpcParams())
+                let sendFrame frameData = 
+                    this.UploadFrameServerRpc(frameData, new ServerRpcParams())
+                let onFinish () =
+                    this.UploadAudioFinishedServerRpc <| new ServerRpcParams()
+                    setNone AudioUploader
+                let (sender, _) = startSender (sendFrame << _.rawData) onFinish audioReader
+                sendAudio sender
+                set AudioUploader sender
+            }
+
+    /// <summary>
+    /// Initialize the audio upload by sending the server the required pcm header.<br />
+    /// </summary>
+    [<ServerRpc(RequireOwnership = false)>]
+    member private this.InitializeUploadServerRpc(clientId: uint64, serverParams: ServerRpcParams) =
+        if this.IsHost && isValidClient this serverParams && clientId = serverParams.Receive.SenderClientId then
+            iter (dispose << snd) CurrentUpload.Value
+            set CurrentUpload (clientId, new MemoryStream())
+
+    /// <summary>
+    /// Initialize the audio upload by sending the server the required pcm header.<br />
+    /// </summary>
+    [<ServerRpc(RequireOwnership = false)>]
+    member private this.UploadFrameServerRpc(frameData: array<byte>, serverParams: ServerRpcParams) =
+        ignore <| monad' {
+            if this.IsHost && isValidClient this serverParams then
+                let! (clientId, uploadStream) = getCurrentUpload "UploadFrameServerRpc"
+                if clientId = serverParams.Receive.SenderClientId then
+                    uploadStream.Write frameData
+        }
+
+    /// <summary>
+    /// Broadcast the uploaded audio.
+    /// </summary>
+    [<ServerRpc(RequireOwnership = false)>]
+    member private this.UploadAudioFinishedServerRpc(serverParams: ServerRpcParams) =
+        handleResult <| monad' {
+            if this.IsHost && isValidClient this serverParams then
+                let! (clientId, uploadStream) = getCurrentUpload "StreamAudioFromUploadServerRpc"
+                if clientId = serverParams.Receive.SenderClientId then
+                    uploadStream.Position <- 0
+                    let audioData = uploadStream.ToArray()
+                    uploadStream.Dispose()
+                    setNone CurrentUpload
+
+                    // Create a new stream for to play directly on the host.
+                    use playbackStream = new MemoryStream(audioData)
+                    use playbackMp3 = new Mp3FileReader(playbackStream)
+                    let playbackWav = decompressAudio playbackMp3
+                    let audioClip = convertToAudioClip playbackWav
+                    flip iter AudioSource.Value <| fun audioSource ->
+                        audioSource.Stop()
+                        UnityEngine.Object.Destroy audioSource.clip
+                        audioSource.clip <- audioClip
+                        audioSource.Play()
+
+                    streamAudioFromHost this <| new Mp3FileReader(new MemoryStream(audioData))
+            }

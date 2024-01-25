@@ -18,10 +18,8 @@ module Mirage.Unity.Enemy.MirageSpawner
 
 open Unity.Netcode
 open FSharpPlus
-open UnityEngine
 open Mirage.Core.Logger
 open Mirage.Core.Field
-open Mirage.Unity.Network
 
 [<Struct>]
 type SpawnParams =
@@ -82,8 +80,6 @@ type MirageSpawner() =
     member _.SetMaskItem(maskItem: HauntedMaskItem) =
         MaskItem.Value <- Option.ofObj maskItem
 
-    member _.Awake () = logInfo "MirageSpawner#Awake is called"
-
     /// <summary>
     /// Spawn a mirage on all clients. This can only be invoked by the host.
     /// </summary>
@@ -110,12 +106,3 @@ type MirageSpawner() =
     member this.SpawnMirageClientRpc(mirageReference: NetworkObjectReference, spawnParams: SpawnParams) =
         if not this.IsHost then
             spawnMirageLocal mirageReference spawnParams
-            //this.FinishSpawnServerRpc <| new ServerRpcParams()
-
-    //[<ServerRpc(RequireOwnership = false)>]
-    //member this.FinishSpawnServerRpc(serverParams: ServerRpcParams) =
-    //    handleResult <| monad' {
-    //        if this.IsHost && isValidClient this serverParams then
-    //            let! maskItem = getMaskItem "FinishSpawnServerRpc"
-    //            //maskItem.NetworkObject.Despawn()
-    //    }
