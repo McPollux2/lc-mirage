@@ -28,7 +28,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Field
 open Mirage.Core.PlayerTracker
 open Mirage.Unity.Network
-open Mirage.Unity.Enemy.MirageSpawner
+open Mirage.Unity.MirageSpawner
 
 let private get<'A> : Getter<'A> = getter "SpawnMirage"
 

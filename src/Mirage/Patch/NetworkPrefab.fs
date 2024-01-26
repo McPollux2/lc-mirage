@@ -21,10 +21,10 @@ open HarmonyLib
 open Unity.Netcode
 open Mirage.Core.Field
 open Mirage.Core.Logger
-open Mirage.Unity.Enemy.ImitatePlayer
+open Mirage.Unity.ImitatePlayer
 open Mirage.Unity.AudioStream
 open Mirage.Unity.Network
-open Mirage.Unity.Enemy.MirageSpawner
+open Mirage.Unity.MirageSpawner
 
 type RegisterPrefab() =
     static let MiragePrefab = field()
