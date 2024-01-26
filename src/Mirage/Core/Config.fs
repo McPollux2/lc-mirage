@@ -31,17 +31,35 @@ open Mirage.Core.Logger
 /// Local preferences managed by BepInEx.
 /// </summary>
 type private LocalConfig(config: ConfigFile) =
-    member val FooBar = config.Bind<string>("Test", "FooBar", "foo bar baz", "test test test")
+    let [<Literal>] imitateSection = "Imitate player"
+    member val ImitateMinDelay =
+        config.Bind<int>(
+            imitateSection,
+            "MinimumDelay",
+            7000,
+            "The minimum amount of time in between voice playbacks (in milliseconds)."
+        )
+    member val ImitateMaxDelay =
+        config.Bind<int>(
+            imitateSection,
+            "MaximumDelay",
+            12000,
+            "The maximum amount of time in between voice playbacks (in milliseconds)."
+        )
 
 /// <summary>
 /// Network synchronized configuration values. This is taken from the wiki:
 /// https://lethal.wiki/dev/intermediate/custom-config-syncing
 /// </summary>
 [<Serializable>]
-type SyncedConfig = { fooBar: string }
+type SyncedConfig =
+    {   imitateMinDelay: int
+        imitateMaxDelay: int
+    }
 
 let private toSyncedConfig (config: LocalConfig) =
-    {   fooBar = config.FooBar.Value
+    {   imitateMinDelay = config.ImitateMinDelay.Value
+        imitateMaxDelay = config.ImitateMaxDelay.Value
     }
 
 /// <summary>
@@ -64,22 +82,16 @@ let private isHost () = NetworkManager.Singleton.IsHost
 let private LocalConfig = field()
 let private SyncedConfig = field()
 
-let private get<'A> = getter<'A> "Config"
-
 /// <summary>
-/// Get the <b>SyncedConfig</b> if it's initialized. Otherwise return the <b>LocalConfig</b> (converted to SyncedConfig).
+/// Retrieves a <b>SyncedConfig</b>, either from being synced with the host, or taken by the local config.<br />
+/// This requires <b>initConfig</b> to be invoked to work.
 /// </summary>
-let getConfig methodName =
-    let getSynced = get SyncedConfig "SyncedConfig"
-    let getLocal = get LocalConfig "LocalConfig"
-    match getSynced methodName with
-        | Ok config -> Ok config
-        | Error _ -> toSyncedConfig <!> getLocal methodName
-
-/// <summary>
-/// Same as <b>getConfig</b>, but the error message is ignored.
-/// </summary>
-let getConfig' () = Result.toOption <| getConfig zero
+let getConfig () =
+    let errorIfMissing () =
+        invalidOp "Failed to retrieve local config. This is probably due to running initConfig."
+    match getValue SyncedConfig with
+        | Some config -> config
+        | None -> Option.defaultWith errorIfMissing (toSyncedConfig <!> getValue LocalConfig)
 
 /// <summary>
 /// Initialize the configuration.
@@ -122,19 +134,16 @@ let requestSync () =
 
 let private onRequestSync (clientId: uint64) _ =
     if isHost() then
-        handleResult <| monad' {
-            logInfo $"Config sync request received from client: {clientId}"
-            let! config = getConfig "onRequestSync"
-            let bytes = serializeToBytes config
-            let bytesLength = bytes.Length
-            use writer = new FastBufferWriter(bytesLength + sizeof<int32>, Allocator.Temp)
-            try
-                writer.WriteValueSafe &bytesLength
-                writer.WriteBytesSafe bytes
-                messageManager().SendNamedMessage(toNamedMessage ReceiveSync, clientId, writer)
-            with | error ->
-                logError $"Failed during onRequestSync: {error}"
-        }
+        logInfo $"Config sync request received from client: {clientId}"
+        let bytes = serializeToBytes <| getConfig()
+        let bytesLength = bytes.Length
+        use writer = new FastBufferWriter(bytesLength + sizeof<int32>, Allocator.Temp)
+        try
+            writer.WriteValueSafe &bytesLength
+            writer.WriteBytesSafe bytes
+            messageManager().SendNamedMessage(toNamedMessage ReceiveSync, clientId, writer)
+        with | error ->
+            logError $"Failed during onRequestSync: {error}"
 
 let private onReceiveSync _ (reader: FastBufferReader) =
     if not <| isHost() then
