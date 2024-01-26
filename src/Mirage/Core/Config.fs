@@ -46,6 +46,13 @@ type private LocalConfig(config: ConfigFile) =
             12000,
             "The maximum amount of time in between voice playbacks (in milliseconds)."
         )
+    member val EnablePenalty =
+        config.Bind<bool>(
+            "Credits",
+            "EnablePenalty",
+            false,
+            "Whether the credits penalty should be applied during the end of a round."
+        )
 
 /// <summary>
 /// Network synchronized configuration values. This is taken from the wiki:
@@ -55,11 +62,13 @@ type private LocalConfig(config: ConfigFile) =
 type SyncedConfig =
     {   imitateMinDelay: int
         imitateMaxDelay: int
+        enablePenalty: bool
     }
 
 let private toSyncedConfig (config: LocalConfig) =
     {   imitateMinDelay = config.ImitateMinDelay.Value
         imitateMaxDelay = config.ImitateMaxDelay.Value
+        enablePenalty = config.EnablePenalty.Value
     }
 
 /// <summary>

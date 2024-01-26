@@ -28,6 +28,7 @@ open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
 open Mirage.Patch.SyncConfig
+open Mirage.Patch.RemovePenalty
 open Mirage.Core.Config
 open Mirage.Core.Logger
 
@@ -48,6 +49,7 @@ type Plugin() =
                     typeof<RecordAudio>
                     typeof<SpawnMirage>
                     typeof<SyncConfig>
+                    typeof<RemovePenalty>
                 ]
             ignore <| harmony.Patch(
                 original =
