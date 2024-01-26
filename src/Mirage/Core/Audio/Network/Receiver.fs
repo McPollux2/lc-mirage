@@ -87,12 +87,13 @@ let startReceiver (audioSource: AudioSource) (pcmHeader: PcmHeader) : AudioRecei
 /// </summary>
 let setFrameData (receiver: AudioReceiver) (frameData: FrameData) =
     try
-        let pcmData = decompressFrame receiver.decompressor frameData.rawData
-        if pcmData.Length > 0 then
-            ignore <| receiver.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
-        if not receiver.audioSource.isPlaying then
-            receiver.audioSource.Play()
-        receiver.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        if not <| isNull receiver.audioSource.clip then
+            let pcmData = decompressFrame receiver.decompressor frameData.rawData
+            if pcmData.Length > 0 then
+                ignore <| receiver.audioSource.clip.SetData(pcmData, frameData.sampleIndex)
+            if not receiver.audioSource.isPlaying then
+                receiver.audioSource.Play()
+            receiver.startTime <- DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
     with | error ->
         logError $"Failed to set frame data: {error}"
         stopReceiver receiver

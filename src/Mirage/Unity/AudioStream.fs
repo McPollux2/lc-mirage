@@ -115,10 +115,26 @@ type AudioStream() =
     /// Stream audio from the host to all clients.
     /// </summary>
     let streamAudioFromHost (this: AudioStream) (audioReader: Mp3FileReader)  =
-        stopAudioSender()
-        let (audioSender, pcmHeader) = startSender this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
-        set AudioSender audioSender
-        this.InitializeAudioClientRpc pcmHeader
+        handleResultWith stopAll <| monad' {
+            stopAudioSender()
+            let (audioSender, pcmHeader) = startSender this.SendFrameClientRpc this.FinishAudioClientRpc audioReader
+            set AudioSender audioSender
+
+            // A better approach is to have the client notify the server when it's ready,
+            // but this requires keeping track of the audio state separately for each client.
+
+            // Since I want to only have one audio reader, we wait for a bit and assume the client
+            // has initialized its audio clip.
+
+            // If the client is late and hasn't been initialized by the time it starts to receive audio frames,
+            // it will play silent noise until it reaches the earliest frame it receives.
+            let! audioSender = getAudioSender "streamAudioFromHost"
+            toUniTask_ canceller.Token <| async {
+                this.InitializeAudioClientRpc pcmHeader
+                do! Async.Sleep 1000 // Wait a second for the clients to initialize its audio clip.
+                sendAudio audioSender
+            }
+        }
 
     member this.Awake() =
         let audioSource = this.gameObject.AddComponent<AudioSource>()
@@ -175,19 +191,6 @@ type AudioStream() =
                 set AudioReceiver receiver
                 startTimeout receiver ReceiverTimeout
                     |> _.AsUniTask().Forget()
-                // TODO: This is sus for 3+ clients.
-                this.StartBroadcastingServerRpc <| new ServerRpcParams()
-        }
-
-    /// <summary>
-    /// Begin broadcasting audio to all clients.
-    /// </summary>
-    [<ServerRpc(RequireOwnership = false)>]
-    member private this.StartBroadcastingServerRpc(serverParams: ServerRpcParams) =
-        handleResultWith stopAll <| monad' {
-            if this.IsHost && isValidClient this serverParams then
-                let! audioSender = getAudioSender "InitializeAudioServerRpc"
-                sendAudio audioSender
         }
 
     /// <summary>
