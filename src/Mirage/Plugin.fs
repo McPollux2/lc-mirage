@@ -29,27 +29,32 @@ open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
 open Mirage.Patch.SyncConfig
 open Mirage.Core.Config
+open Mirage.Core.Logger
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
     inherit BaseUnityPlugin()
 
+    let onError () = logError "Failed to initialize Mirage. Plugin is disabled."
+
     member this.Awake() =
-        initNetcodePatcher()
-        initConfig this.Config
-        ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
-        let harmony = new Harmony(pluginId)
-        iter (unbox<Type> >> harmony.PatchAll) 
-            [   typeof<RegisterPrefab>
-                typeof<RecordAudio>
-                typeof<SpawnMirage>
-                typeof<SyncConfig>
-            ]
-        harmony.Patch(
-            original =
-                AccessTools.Method(
-                    AccessTools.Inner(typeof<MaskedPlayerEnemy>, "<killAnimation>d__102"), 
-                    "MoveNext"
-                ),
-            transpiler = new HarmonyMethod(typeof<SpawnMirage>, "prevent duplicate mirage spawn")
-        )
+        handleResultWith onError <| monad' {
+            initNetcodePatcher()
+            return! initConfig this.Config
+            ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
+            let harmony = new Harmony(pluginId)
+            iter (unbox<Type> >> harmony.PatchAll) 
+                [   typeof<RegisterPrefab>
+                    typeof<RecordAudio>
+                    typeof<SpawnMirage>
+                    typeof<SyncConfig>
+                ]
+            ignore <| harmony.Patch(
+                original =
+                    AccessTools.Method(
+                        AccessTools.Inner(typeof<MaskedPlayerEnemy>, "<killAnimation>d__102"), 
+                        "MoveNext"
+                    ),
+                transpiler = new HarmonyMethod(typeof<SpawnMirage>, "prevent duplicate mirage spawn")
+            )
+        }

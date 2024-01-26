@@ -94,11 +94,23 @@ let getConfig () =
         | None -> Option.defaultWith errorIfMissing (toSyncedConfig <!> getValue LocalConfig)
 
 /// <summary>
-/// Initialize the configuration.
+/// Initialize the configuration. Does nothing if you run it more than once.
 /// </summary>
-let initConfig (config: ConfigFile) =
-    if Option.isNone LocalConfig.Value then
-        set LocalConfig <| new LocalConfig(config)
+let initConfig (file: ConfigFile) =
+    monad' {
+        if Option.isNone LocalConfig.Value then
+            let config = new LocalConfig(file)
+            let errorHeader = "Configuration is invalid. "
+            let minDelayKey = config.ImitateMinDelay.Definition.Key
+            let maxDelayKey = config.ImitateMaxDelay.Definition.Key
+            if config.ImitateMinDelay.Value < 0 then
+                return! Error $"{errorHeader}{minDelayKey} cannot have a value smaller than 0."
+            if config.ImitateMaxDelay.Value < 0 then
+                return! Error $"{errorHeader}{maxDelayKey} cannot have a value smaller than 0."
+            if config.ImitateMinDelay.Value > config.ImitateMaxDelay.Value then
+                return! Error $"{errorHeader}{minDelayKey} must have a value smaller than {maxDelayKey}"
+            set LocalConfig config
+    }
 
 let private serializeToBytes<'A> (value: 'A) : array<byte> =
     let formatter = new BinaryFormatter()
