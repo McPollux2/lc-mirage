@@ -42,32 +42,32 @@ let private get<'A> : Getter<'A> = getter "AudioStream"
 type AudioStream() =
     inherit NetworkBehaviour()
 
-    let AudioSource: Field<AudioSource> = field()
+    let AudioSource = field<AudioSource>()
 
     /// <summary>
     /// <b>Host only.</b><br />
     /// Send audio to receivers from the host.
     /// </summary>
-    let AudioSender: Field<AudioSender> = field()
+    let AudioSender = field<AudioSender>()
 
     /// <summary>
     /// <b>Non-host only.</b><br />
     /// Receive audio on non-hosts.
     /// </summary>
-    let AudioReceiver: Field<AudioReceiver> = field()
+    let AudioReceiver = field<AudioReceiver>()
     
     /// <summary>
     /// <b>Non-host only.</b><br />
     /// Send audio to the host to broadcast to enemies.
     /// </summary>
-    let AudioUploader: Field<AudioSender> = field()
+    let AudioUploader = field<AudioSender>()
     
     /// <summary>
     /// <b>Host only.</b><br />
     /// The client id to accept audio bytes from, and
     /// the current upload bytes of compressed audio.
     /// </summary>
-    let CurrentUpload: Field<uint64 * MemoryStream> = field()
+    let CurrentUpload = field<uint64 * MemoryStream>()
 
     let getAudioSource = get AudioSource "AudioSource"
     let getAudioSender = get AudioSender "AudioSender"

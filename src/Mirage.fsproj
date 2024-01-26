@@ -79,7 +79,7 @@
     <Compile Include="Mirage/Core/Logger.fs" />
     <Compile Include="Mirage/Core/Field.fs" />
     <Compile Include="Mirage/Core/Config.fs" />
-    <Compile Include="Mirage/Unity/PlayerManager.fs" />
+    <Compile Include="Mirage/Core/PlayerTracker.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
     <Compile Include="Mirage/Core/Audio/Recording.fs" />

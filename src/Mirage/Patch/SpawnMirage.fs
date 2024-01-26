@@ -26,18 +26,18 @@ open System.Collections.Generic
 open System.Reflection.Emit
 open Mirage.Core.Logger
 open Mirage.Core.Field
+open Mirage.Core.PlayerTracker
 open Mirage.Unity.Network
-open Mirage.Unity.PlayerManager
 open Mirage.Unity.Enemy.MirageSpawner
 
 let private get<'A> : Getter<'A> = getter "SpawnMirage"
 
 type SpawnMirage() =
-    static let MaskItemPrefab: Field<HauntedMaskItem> = ref None
-    static let PlayerManager: Field<PlayerManager<uint64>> = ref None
+    static let MaskItemPrefab = field<HauntedMaskItem>()
+    static let PlayerTracker = field()
     
     static let getMaskItemPrefab = get MaskItemPrefab "MaskItemPrefab"
-    static let getPlayerManager = get PlayerManager "PlayerManager"
+    static let getPlayerTracker = get PlayerTracker "PlayerTracker"
 
     /// <summary>
     /// Spawn a mirage at the player's location.
@@ -62,11 +62,11 @@ type SpawnMirage() =
         if __instance.IsHost 
             && not (isNull GameNetworkManager.Instance.localPlayerController)
             && __instance = GameNetworkManager.Instance.localPlayerController 
-            && Option.isNone PlayerManager.Value
+            && Option.isNone PlayerTracker.Value
                 then
-                defaultPlayerManager (Some << _.actualClientId)
+                defaultPlayerTracker (Some << _.actualClientId)
                     |> flip addPlayer GameNetworkManager.Instance.localPlayerController
-                    |> set PlayerManager
+                    |> set PlayerTracker
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
@@ -74,10 +74,10 @@ type SpawnMirage() =
         if __instance.IsHost then
             let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
-            getPlayerManager zero
+            getPlayerTracker zero
                 |>> flip addPlayer player
                 |> Option.ofResult
-                |> setOption PlayerManager
+                |> setOption PlayerTracker
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
@@ -95,10 +95,10 @@ type SpawnMirage() =
         handleResult <| monad' {
             if __instance.IsHost then
                 // For whatever reason, KillPlayerServerRpc is invoked twice, per player death.
-                // PlayerManager is used to ensure spawning only happens once.
-                let! playerManager = getPlayerManager "``spawn mirage on player death``"
-                if isPlayerTracked playerManager __instance then
-                    set PlayerManager <| removePlayer playerManager __instance
+                // PlayerTracker is used to ensure spawning only happens once.
+                let! playerTracker = getPlayerTracker "``spawn mirage on player death``"
+                if isPlayerTracked playerTracker __instance then
+                    set PlayerTracker <| removePlayer playerTracker __instance
                     spawnMirage __instance
         }
 

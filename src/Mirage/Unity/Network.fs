@@ -51,4 +51,4 @@ let findNetworkPrefabs<'A> : NetworkManager -> List<'A> =
 /// Find the first network prefab of the given type.
 /// </summary>
 let findNetworkPrefab<'A> : NetworkManager -> Option<'A> =
-    findPrefabFunctor typeof<'A> List.tryFind
+    findPrefabFunctor typeof<'A> tryFind

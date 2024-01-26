@@ -27,7 +27,6 @@ open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Unity.AudioStream
 open Mirage.Core.Audio.Recording
-open Mirage.Core.Config
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.
@@ -38,8 +37,8 @@ type ImitatePlayer() =
     let random = new Random()
     let canceller = new CancellationTokenSource()
 
-    let AudioStream: Field<AudioStream>  = field()
-    let Mirage: Field<MaskedPlayerEnemy> = field()
+    let AudioStream = field<AudioStream>()
+    let Mirage = field<MaskedPlayerEnemy>()
 
     let imitatePlayer (this: ImitatePlayer) =
         ignore <| monad' {
