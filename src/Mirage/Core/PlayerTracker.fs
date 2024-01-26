@@ -31,7 +31,7 @@ type PlayerTracker<'Key when 'Key : comparison> =
 /// <summary>
 /// Create a default instance of a player tracker.
 /// </summary>
-let defaultPlayerTracker (toKey: PlayerControllerB -> Option<'Key>) : PlayerTracker<'Key> =
+let defaultPlayerTracker (toKey: PlayerControllerB -> Option<'Key>) =
     {   players = zero
         toKey = toKey
     }

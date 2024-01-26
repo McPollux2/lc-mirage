@@ -19,7 +19,6 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
-open UnityEngine
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.Enemy.ImitatePlayer
@@ -39,7 +38,6 @@ type RegisterPrefab() =
             let! mirage = 
                 findNetworkPrefab<MaskedPlayerEnemy> networkManager
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
-            mirage.enemyType.enemyName <- "Mirage"
             mirage.enemyType.isDaytimeEnemy <- true
             mirage.enemyType.isOutsideEnemy <- true
             iter (mirage.gameObject.AddComponent >> ignore)
@@ -60,12 +58,15 @@ type RegisterPrefab() =
             if networkManager.IsHost then
                 let! miragePrefab = getMiragePrefab "``register prefab to spawn list``"
                 let prefabExists enemy = enemy.GetType() = typeof<MaskedPlayerEnemy>
-                let registerPrefab (level: SelectableLevel) =
-                    let spawnable = new SpawnableEnemyWithRarity()
+                let modifySpawnable (spawnable: SpawnableEnemyWithRarity) =
                     spawnable.enemyType <- miragePrefab.enemyType
                     spawnable.rarity <- 0
+                let registerPrefab (level: SelectableLevel) =
+                    let spawnable = new SpawnableEnemyWithRarity()
+                    modifySpawnable spawnable
                     level.Enemies.Add spawnable
                 flip iter (__instance.levels) <| fun level ->
-                    if not <| exists prefabExists level.Enemies then
-                        registerPrefab level
+                    match tryFind prefabExists level.Enemies with
+                        | None -> registerPrefab level
+                        | Some spawnable -> modifySpawnable spawnable
         }
