@@ -155,7 +155,6 @@ let requestSync () =
 
 let private onRequestSync (clientId: uint64) _ =
     if isHost() then
-        logInfo $"Config sync request received from client: {clientId}"
         let bytes = serializeToBytes <| getConfig()
         let bytesLength = bytes.Length
         use writer = new FastBufferWriter(bytesLength + sizeof<int32>, Allocator.Temp)
@@ -178,7 +177,6 @@ let private onReceiveSync _ (reader: FastBufferReader) =
             let bytes = Array.zeroCreate<byte> bytesLength
             reader.ReadBytesSafe(ref bytes, bytesLength)
             set SyncedConfig <| deserializeFromBytes bytes
-            logInfo "Successfully synced config with host."
         }
 
 /// <summary>

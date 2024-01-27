@@ -33,60 +33,78 @@ open Mirage.Unity.MirageSpawner
 let private get<'A> : Getter<'A> = getter "SpawnMirage"
 
 type SpawnMirage() =
-    static let MaskItemPrefab = field<HauntedMaskItem>()
+    static let Mask = field<HauntedMaskItem>()
     static let PlayerTracker = field()
     
-    static let getMaskItemPrefab = get MaskItemPrefab "MaskItemPrefab"
+    static let getMask = get Mask "Mask"
     static let getPlayerTracker = get PlayerTracker "PlayerTracker"
 
-    /// <summary>
-    /// Spawn a mirage at the player's location.
-    /// </summary>
-    static let spawnMirage (player: PlayerControllerB) =
-        handleResult <| monad' {
-            let! maskPrefab = getMaskItemPrefab "``spawn mirage enemy on player death``"
-            let maskItem = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
-            maskItem.transform.localScale <- Vector3.zero
-            maskItem.previousPlayerHeldBy <- player
-            maskItem.NetworkObject.Spawn()
-            let mirageSpawner = maskItem.GetComponent<MirageSpawner>()
-            mirageSpawner.SetMaskItem maskItem
-            mirageSpawner.SpawnMirage()
-            maskItem.NetworkObject.Despawn()
-        }
-
-    [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<PlayerControllerB>, "ConnectClientToPlayerObject")>]
-    static member ``start player manager (host)``(__instance: PlayerControllerB) =
-        // Only start the player manager after game network manager has set the local player controller.
-        if __instance.IsHost 
-            && not (isNull GameNetworkManager.Instance.localPlayerController)
-            && __instance = GameNetworkManager.Instance.localPlayerController 
-            && Option.isNone PlayerTracker.Value
-                then
-                defaultPlayerTracker (Some << _.actualClientId)
-                    |> flip addPlayer GameNetworkManager.Instance.localPlayerController
-                    |> set PlayerTracker
-
-    [<HarmonyPostfix>]
-    [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
-    static member ``start tracking player on game start``(__instance: StartOfRound, clientId: uint64) =
-        if __instance.IsHost then
-            let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
-            let player = StartOfRound.Instance.allPlayerScripts[playerId]
-            getPlayerTracker zero
-                |>> flip addPlayer player
-                |> Option.ofResult
-                |> setOption PlayerTracker
+    static let connectedPlayers = new Dictionary<uint64, PlayerControllerB>()
+    static let defaultTracker = defaultPlayerTracker (Some << _.actualClientId)
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``save mask prefab for later use``(__instance: GameNetworkManager) =
         handleResult <| monad' {
-            let! maskItem =
+            let! mask =
                 findNetworkPrefab<HauntedMaskItem> (__instance.GetComponent<NetworkManager>())
                     |> Option.toResultWith "HauntedMaskItem network prefab is missing. This is likely due to a mod incompatibility."
-            set MaskItemPrefab maskItem
+            set Mask mask
+        }
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "OnLocalDisconnect")>]
+    static member ``reset connected players when game is finished``(__instance: StartOfRound) =
+        connectedPlayers.Clear()
+        setNone PlayerTracker
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<PlayerControllerB>, "ConnectClientToPlayerObject")>]
+    static member ``start player manager (host)``(__instance: PlayerControllerB) =
+        let isLocalPlayer () =
+            not (isNull GameNetworkManager.Instance.localPlayerController)
+                && __instance = GameNetworkManager.Instance.localPlayerController 
+        if __instance.IsHost && isLocalPlayer() then
+            // This will always be the host player.
+            connectedPlayers[__instance.actualClientId] <- __instance
+            let playerTracker = defaultTracker
+            set PlayerTracker <| addPlayer playerTracker __instance
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "OnClientConnect")>]
+    static member ``start tracking player on connect``(__instance: StartOfRound, clientId: uint64) =
+        handleResult <| monad' {
+            if __instance.IsHost then
+                // This will always be a non-host player.
+                let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
+                let player = StartOfRound.Instance.allPlayerScripts[playerId]
+                connectedPlayers[clientId] <- player
+                let! playerTracker = getPlayerTracker "``stop tracking player on connect``"
+                set PlayerTracker <| addPlayer playerTracker player
+        }
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "OnClientDisconnect")>]
+    static member ``stop tracking player on disconnect``(__instance: StartOfRound, clientId: uint64) =
+        handleResult <| monad' {
+            if __instance.IsHost then
+                ignore <| connectedPlayers.Remove clientId
+                let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
+                let player = StartOfRound.Instance.allPlayerScripts[playerId]
+                let! playerTracker = getPlayerTracker "``stop tracking player on disconnect``"
+                set PlayerTracker <| removePlayer playerTracker player
+        }
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
+    static member ``start player tracker, and add players if they're already connected``(__instance: StartOfRound) =
+        handleResult <| monad' {
+            if __instance.IsHost then
+                if connectedPlayers.Count > 0 then
+                    let mutable playerTracker = defaultTracker
+                    flip iter connectedPlayers <| fun player ->
+                        playerTracker <- addPlayer playerTracker player
+                    set PlayerTracker playerTracker
         }
 
     [<HarmonyPrefix>]
@@ -99,15 +117,24 @@ type SpawnMirage() =
                 let! playerTracker = getPlayerTracker "``spawn mirage on player death``"
                 if isPlayerTracked playerTracker __instance then
                     set PlayerTracker <| removePlayer playerTracker __instance
-                    spawnMirage __instance
+                    handleResult <| monad' {
+                        let! maskPrefab = getMask "``spawn mirage on player death``"
+                        let maskItem = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
+                        maskItem.transform.localScale <- Vector3.zero
+                        maskItem.previousPlayerHeldBy <- __instance
+                        maskItem.NetworkObject.Spawn()
+                        let mirageSpawner = maskItem.GetComponent<MirageSpawner>()
+                        mirageSpawner.SetMaskItem maskItem
+                        mirageSpawner.SpawnMirage()
+                        maskItem.NetworkObject.Despawn()
+                    }
         }
-
+        
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<HauntedMaskItem>, "CreateMimicServerRpc")>]
     static member ``use mirage spawner instead of default create mimic server rpc``(__instance: HauntedMaskItem) =
-        if __instance.IsHost then
-            if not __instance.previousPlayerHeldBy.isPlayerDead then
-                __instance.previousPlayerHeldBy.KillPlayer(Vector3.zero, false, CauseOfDeath.Suffocation, __instance.maskTypeId)
+        if __instance.IsHost && not __instance.previousPlayerHeldBy.isPlayerDead then
+            __instance.previousPlayerHeldBy.KillPlayer(Vector3.zero, false, CauseOfDeath.Suffocation, __instance.maskTypeId)
         false
 
     [<HarmonyPrefix>]

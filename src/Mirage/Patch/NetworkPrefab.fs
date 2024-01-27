@@ -19,7 +19,6 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
-open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.ImitatePlayer
 open Mirage.Unity.AudioStream
@@ -27,9 +26,6 @@ open Mirage.Unity.Network
 open Mirage.Unity.MirageSpawner
 
 type RegisterPrefab() =
-    static let MiragePrefab = field()
-    static let getMiragePrefab = getter "InitializePrefab" MiragePrefab "MiragePrefab"
-
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
     static member ``register network prefab``(__instance: GameNetworkManager) =
@@ -40,13 +36,11 @@ type RegisterPrefab() =
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
             mirage.enemyType.isDaytimeEnemy <- true
             mirage.enemyType.isOutsideEnemy <- true
-            iter (mirage.gameObject.AddComponent >> ignore)
+            iter (ignore << mirage.gameObject.AddComponent)
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>
                 ]
-            set MiragePrefab mirage
-            let maskedPrefabs = findNetworkPrefabs<HauntedMaskItem> networkManager
-            flip iter maskedPrefabs <| fun mask ->
+            flip iter (findNetworkPrefabs<HauntedMaskItem> networkManager) <| fun mask ->
                 ignore <| mask.gameObject.AddComponent<MirageSpawner>()
         }
 
@@ -56,17 +50,8 @@ type RegisterPrefab() =
         handleResult <| monad' {
             let networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>()
             if networkManager.IsHost then
-                let! miragePrefab = getMiragePrefab "``register prefab to spawn list``"
                 let prefabExists enemy = enemy.GetType() = typeof<MaskedPlayerEnemy>
-                let modifySpawnable (spawnable: SpawnableEnemyWithRarity) =
-                    spawnable.enemyType <- miragePrefab.enemyType
-                    spawnable.rarity <- 0
-                let registerPrefab (level: SelectableLevel) =
-                    let spawnable = new SpawnableEnemyWithRarity()
-                    modifySpawnable spawnable
-                    level.Enemies.Add spawnable
                 flip iter (__instance.levels) <| fun level ->
-                    match tryFind prefabExists level.Enemies with
-                        | None -> registerPrefab level
-                        | Some spawnable -> modifySpawnable spawnable
+                    flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
+                        ignore <| level.Enemies.Remove spawnable
         }
