@@ -18,11 +18,6 @@ powershell Copy-Item -Path "../lib/NAudio.Midi.dll" -Destination "../bin/core/NA
 powershell Copy-Item -Path "../lib/NAudio.Wasapi.dll" -Destination "../bin/core/NAudio.Wasapi.dll"
 powershell Copy-Item -Path "../lib/NAudio.WinForms.dll" -Destination "../bin/core/NAudio.WinForms.dll"
 powershell Copy-Item -Path "../lib/NAudio.WinMM.dll" -Destination "../bin/core/NAudio.WinMM.dll"
-powershell Copy-Item -Path "../lib/UniTask.Addressables.dll" -Destination "../bin/core/UniTask.Addressables.dll"
-powershell Copy-Item -Path "../lib/UniTask.dll" -Destination "../bin/core/UniTask.dll"
-powershell Copy-Item -Path "../lib/UniTask.DOTween.dll" -Destination "../bin/core/UniTask.DOTween.dll"
-powershell Copy-Item -Path "../lib/UniTask.Linq.dll" -Destination "../bin/core/UniTask.Linq.dll"
-powershell Copy-Item -Path "../lib/UniTask.TextMeshPro.dll" -Destination "../bin/core/UniTask.TextMeshPro.dll"
 
 powershell Compress-Archive^
     -Force^
