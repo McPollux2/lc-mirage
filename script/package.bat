@@ -30,5 +30,6 @@ powershell Compress-Archive^
           "../bin/plugins",^
           "../manifest.json",^
           "../icon.png",^
-          "../README.md"^
+          "../README.md",^
+          "../LICENSE"^
     -DestinationPath "../bin/mirage.zip"
