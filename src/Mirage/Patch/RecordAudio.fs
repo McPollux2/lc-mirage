@@ -16,6 +16,7 @@
  *)
 module Mirage.Patch.RecordAudio
 
+open System
 open HarmonyLib
 open FSharpPlus
 open Dissonance
@@ -62,14 +63,14 @@ type RecordAudio() =
                     set Recording recording
                     recording
                 let recording = Option.defaultWith defaultRecording <| get Recording
-                writeRecording recording buffer
+                recording.WriteSamples <| new ArraySegment<float32>(buffer)
             else
-                iter disposeRecording Recording.Value
+                iter dispose Recording.Value
                 setNone Recording
         }
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<BasePreprocessingPipeline>, "Dispose")>]
     static member ``dispose recording``() =
-        iter disposeRecording Recording.Value
+        iter dispose Recording.Value
         setNone Recording

@@ -19,12 +19,10 @@ module Mirage.Core.Audio.Recording
 #nowarn "40"
 
 open FSharpPlus
-open FSharpx.Control
 open Dissonance.Audio
 open UnityEngine
 open System
 open System.IO
-open System.Threading
 open Dissonance
 
 /// <summary>
@@ -33,43 +31,12 @@ open Dissonance
 let private RecordingDirectory = $"{Application.dataPath}/../Mirage"
 
 /// <summary>
-/// A recording file for the local player.<br />
-/// This writes to the file on a separate thread to avoid stalling the unity thread.
-/// </summary>
-type Recording =
-    private
-        {   audioWriter: AudioFileWriter
-            channel: BlockingQueueAgent<array<float32>>
-            canceller: CancellationTokenSource
-        }
-
-/// <summary>
 /// Create a recording file with a random name.
 /// </summary>
 let createRecording format =
     let filePath = $"{RecordingDirectory}/{DateTime.UtcNow.ToFileTime()}.wav"
-    let recording =
-        {   audioWriter = new AudioFileWriter(filePath, format)
-            channel = new BlockingQueueAgent<array<float32>>(Int32.MaxValue)
-            canceller = new CancellationTokenSource()
-        }
-    //let rec consumer =
-    //    async {
-    //        let! samples = recording.channel.AsyncGet()
-    //        recording.audioWriter.WriteSamples <| new ArraySegment<float32>(samples)
-    //        return! consumer
-    //    }
-    //Async.Start(consumer, recording.canceller.Token)
+    let recording = new AudioFileWriter(filePath, format)
     recording
-
-/// <summary>
-/// Dispose resources associated with the recording.
-/// </summary>
-let disposeRecording (recording: Recording) =
-    recording.canceller.Cancel()
-    dispose recording.canceller
-    dispose recording.audioWriter
-    dispose recording.channel
 
 /// <summary>
 /// Whether or not samples should still be recorded.<br />
@@ -79,15 +46,8 @@ let isRecording (dissonance: DissonanceComms) =
     not (isNull GameNetworkManager.Instance)
         && not (isNull GameNetworkManager.Instance.localPlayerController)
         && not GameNetworkManager.Instance.localPlayerController.isPlayerDead
-        && IngamePlayerSettings.Instance.Settings.pushToTalk
+        && IngamePlayerSettings.Instance.settings.pushToTalk
         && not dissonance.IsMuted
-
-/// <summary>
-/// Write the samples into the recording file.
-/// </summary>
-let writeRecording (recording: Recording) (samples: array<float32>) =
-    //recording.channel.Add samples
-    recording.audioWriter.WriteSamples <| new ArraySegment<float32>(samples)
 
 /// <summary>
 /// Delete the recordings of the local player.
