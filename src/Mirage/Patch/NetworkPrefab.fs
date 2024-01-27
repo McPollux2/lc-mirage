@@ -19,6 +19,7 @@ module Mirage.Patch.NetworkPrefab
 open FSharpPlus
 open HarmonyLib
 open Unity.Netcode
+open Mirage.Core.Config
 open Mirage.Core.Logger
 open Mirage.Unity.ImitatePlayer
 open Mirage.Unity.AudioStream
@@ -47,11 +48,9 @@ type RegisterPrefab() =
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "Start")>]
     static member ``register prefab to spawn list``(__instance: StartOfRound) =
-        handleResult <| monad' {
-            let networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>()
-            if networkManager.IsHost then
-                let prefabExists enemy = enemy.GetType() = typeof<MaskedPlayerEnemy>
-                flip iter (__instance.levels) <| fun level ->
-                    flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
-                        ignore <| level.Enemies.Remove spawnable
-        }
+        let networkManager = UnityEngine.Object.FindObjectOfType<NetworkManager>()
+        if networkManager.IsHost && not (getConfig().enableNaturalSpawn) then
+            let prefabExists enemy = enemy.GetType() = typeof<MaskedPlayerEnemy>
+            flip iter (__instance.levels) <| fun level ->
+                flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
+                    ignore <| level.Enemies.Remove spawnable

@@ -53,6 +53,13 @@ type private LocalConfig(config: ConfigFile) =
             false,
             "Whether the credits penalty should be applied during the end of a round."
         )
+    member val EnableNaturalSpawn =
+        config.Bind<bool>(
+            "MaskedPlayerEnemy",
+            "EnableNaturalSpawn",
+            false,
+            "Whether or not masked enemies should naturally spawn. Enabling this can potentially cause issues."
+        )
 
 /// <summary>
 /// Network synchronized configuration values. This is taken from the wiki:
@@ -63,12 +70,14 @@ type SyncedConfig =
     {   imitateMinDelay: int
         imitateMaxDelay: int
         enablePenalty: bool
+        enableNaturalSpawn: bool
     }
 
 let private toSyncedConfig (config: LocalConfig) =
     {   imitateMinDelay = config.ImitateMinDelay.Value
         imitateMaxDelay = config.ImitateMaxDelay.Value
         enablePenalty = config.EnablePenalty.Value
+        enableNaturalSpawn = config.EnableNaturalSpawn.Value
     }
 
 /// <summary>

@@ -129,7 +129,7 @@ type SpawnMirage() =
                         maskItem.NetworkObject.Despawn()
                     }
         }
-        
+
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<HauntedMaskItem>, "CreateMimicServerRpc")>]
     static member ``use mirage spawner instead of default create mimic server rpc``(__instance: HauntedMaskItem) =
