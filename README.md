@@ -11,6 +11,7 @@ This mod is required by the host and on all clients. Clients that do not have th
    - Mimic the dead player's voice to all nearby players, as well as spectators
    - Use the player's outfit (this is vanilla behaviour)
    - Remove the mask off of spawned enemy
+   - Remove the arms out animation off of spawned enemy
 - Remove the post-round credits penalty (configurable)
 - Vanilla masked enemy spawn is disabled (configurable, this is disabled by default because a mirage only mimics whoever dies)
 - Configuration is synced to all players (only the host's config is used)
