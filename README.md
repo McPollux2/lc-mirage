@@ -16,14 +16,16 @@ This mod is required by the host and on all clients. Clients that do not have th
 - Remove the post-round credits penalty (configurable)
 - Configuration is synced to all players (only the host's config is used)
 
-## Planned features
-
-### Support voice activity
+## When will you support voice activity?
 
 While voice activity was initially intended for the initial release, its current implementation results in a lot of undesirable audio clips,
 causing voice playback to rarely mimic the clips that you would normally expect.
 
 This will be implemented after I figure out how to filter the undesirable audio clips, but is currently a low priority for me.
+
+## Recommended mods
+
+[DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) - This plugin significantly reduces the duration of lag spikes simply by changing the log level of DissonanceVoip.
 
 ## Incompatible mods
 
