@@ -19,7 +19,6 @@ module Mirage.Unity.MirageSpawner
 open Unity.Netcode
 open FSharpPlus
 open Mirage.Core.Logger
-open Mirage.Core.Field
 
 [<Struct>]
 type SpawnParams =
@@ -56,8 +55,7 @@ let createSpawnParams (maskItem: HauntedMaskItem) =
 type MirageSpawner() =
     inherit NetworkBehaviour()
 
-    let MaskItem = ref None
-    let getMaskItem = getter "MirageSpawner" MaskItem "MaskItem"
+    let mutable spawned = false
 
     /// <summary>
     /// Spawn a mirage enemy locally. This does not affect any other clients.
@@ -77,26 +75,28 @@ type MirageSpawner() =
             mirage.SetVisibilityOfMaskedEnemy()
             player.redirectToEnemy <- mirage
 
-    member _.SetMaskItem(maskItem: HauntedMaskItem) =
-        MaskItem.Value <- Option.ofObj maskItem
+    /// <summary>
+    /// Whether a Mirage has been spawned or not.
+    /// </summary>
+    member _.IsSpawned() = spawned
 
     /// <summary>
     /// Spawn a mirage on all clients. This can only be invoked by the host.
     /// </summary>
-    member this.SpawnMirage() =
+    member this.SpawnMirage(mask: HauntedMaskItem) =
         handleResult <| monad' {
             if not this.IsHost then logError "MirageSpawner#SpawnMirage can only be invoked by the host."
             else
-                let! maskItem = getMaskItem "SpawnMirage"
-                let spawnParams = createSpawnParams maskItem
+                spawned <- true
+                let spawnParams = createSpawnParams mask
                 let playerId = StartOfRound.Instance.ClientPlayerList[spawnParams.clientId]
                 let player = StartOfRound.Instance.allPlayerScripts[playerId]
                 let mirageReference =
                     RoundManager.Instance.SpawnEnemyGameObject(
-                        maskItem.previousPlayerHeldBy.transform.position,
+                        mask.previousPlayerHeldBy.transform.position,
                         player.transform.eulerAngles.y,
                         -1,
-                        maskItem.mimicEnemy
+                        mask.mimicEnemy
                     )
                 spawnMirageLocal mirageReference spawnParams
                 this.SpawnMirageClientRpc(mirageReference, spawnParams)
@@ -105,4 +105,5 @@ type MirageSpawner() =
     [<ClientRpc>]
     member this.SpawnMirageClientRpc(mirageReference: NetworkObjectReference, spawnParams: SpawnParams) =
         if not this.IsHost then
+            spawned <- true
             spawnMirageLocal mirageReference spawnParams

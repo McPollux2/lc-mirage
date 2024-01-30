@@ -32,6 +32,7 @@ open Mirage.Core.Logger
 /// </summary>
 type private LocalConfig(config: ConfigFile) =
     let [<Literal>] imitateSection = "Imitate player"
+    let [<Literal>] maskedSection = "MaskedPlayerEnemy"
     member val ImitateMinDelay =
         config.Bind<int>(
             imitateSection,
@@ -60,6 +61,13 @@ type private LocalConfig(config: ConfigFile) =
             false,
             "Whether or not masked enemies should naturally spawn. Enabling this can potentially cause issues."
         )
+    member val SpawnOnPlayerDeath =
+        config.Bind<int>(
+            "MaskedPlayerEnemy",
+            "SpawnOnPlayerDeath",
+            100,
+            "The percent chance of a masked enemy spawning on player death (like a zombie). Must have a value of 0-100."
+        )
 
 /// <summary>
 /// Network synchronized configuration values. This is taken from the wiki:
@@ -71,6 +79,7 @@ type SyncedConfig =
         imitateMaxDelay: int
         enablePenalty: bool
         enableNaturalSpawn: bool
+        spawnOnPlayerDeath: int
     }
 
 let private toSyncedConfig (config: LocalConfig) =
@@ -78,6 +87,7 @@ let private toSyncedConfig (config: LocalConfig) =
         imitateMaxDelay = config.ImitateMaxDelay.Value
         enablePenalty = config.EnablePenalty.Value
         enableNaturalSpawn = config.EnableNaturalSpawn.Value
+        spawnOnPlayerDeath = config.SpawnOnPlayerDeath.Value
     }
 
 /// <summary>
@@ -121,12 +131,15 @@ let initConfig (file: ConfigFile) =
             let errorHeader = "Configuration is invalid. "
             let minDelayKey = config.ImitateMinDelay.Definition.Key
             let maxDelayKey = config.ImitateMaxDelay.Definition.Key
+            let spawnOnPlayerDeathKey = config.SpawnOnPlayerDeath.Definition.Key
             if config.ImitateMinDelay.Value < 0 then
                 return! Error $"{errorHeader}{minDelayKey} cannot have a value smaller than 0."
             if config.ImitateMaxDelay.Value < 0 then
                 return! Error $"{errorHeader}{maxDelayKey} cannot have a value smaller than 0."
             if config.ImitateMinDelay.Value > config.ImitateMaxDelay.Value then
                 return! Error $"{errorHeader}{minDelayKey} must have a value smaller than {maxDelayKey}"
+            if config.SpawnOnPlayerDeath.Value < 0 || config.SpawnOnPlayerDeath.Value > 100 then
+                return! Error $"{errorHeader}{spawnOnPlayerDeathKey} must have a value between 0-100."
             set LocalConfig config
     }
 

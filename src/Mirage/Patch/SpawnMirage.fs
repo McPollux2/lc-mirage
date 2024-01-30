@@ -22,8 +22,10 @@ open GameNetcodeStuff
 open HarmonyLib
 open UnityEngine
 open Unity.Netcode
+open System
 open System.Collections.Generic
 open System.Reflection.Emit
+open Mirage.Core.Config
 open Mirage.Core.Logger
 open Mirage.Core.Field
 open Mirage.Core.PlayerTracker
@@ -41,6 +43,7 @@ type SpawnMirage() =
 
     static let connectedPlayers = new Dictionary<uint64, PlayerControllerB>()
     static let defaultTracker = defaultPlayerTracker (Some << _.actualClientId)
+    static let random = new Random()
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<GameNetworkManager>, "Start")>]
@@ -117,17 +120,15 @@ type SpawnMirage() =
                 let! playerTracker = getPlayerTracker "``spawn mirage on player death``"
                 if isPlayerTracked playerTracker __instance then
                     set PlayerTracker <| removePlayer playerTracker __instance
-                    handleResult <| monad' {
+                    if random.Next(1, 101) <= getConfig().spawnOnPlayerDeath then
                         let! maskPrefab = getMask "``spawn mirage on player death``"
-                        let maskItem = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
-                        maskItem.transform.localScale <- Vector3.zero
-                        maskItem.previousPlayerHeldBy <- __instance
-                        maskItem.NetworkObject.Spawn()
-                        let mirageSpawner = maskItem.GetComponent<MirageSpawner>()
-                        mirageSpawner.SetMaskItem maskItem
-                        mirageSpawner.SpawnMirage()
-                        maskItem.NetworkObject.Despawn()
-                    }
+                        let mask = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
+                        mask.transform.localScale <- Vector3.zero
+                        mask.previousPlayerHeldBy <- __instance
+                        mask.NetworkObject.Spawn()
+                        let mirageSpawner = __instance.GetComponent<MirageSpawner>()
+                        mirageSpawner.SpawnMirage mask
+                        mask.NetworkObject.Despawn()
         }
 
     [<HarmonyPrefix>]
@@ -139,7 +140,8 @@ type SpawnMirage() =
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "SpawnDeadBody")>]
-    static member ``disable player corpse spawn``() = false
+    static member ``disable player corpse spawn``(__instance: PlayerControllerB) =
+        not <| __instance.GetComponent<MirageSpawner>().IsSpawned()
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>)>]

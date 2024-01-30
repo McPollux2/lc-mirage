@@ -17,6 +17,7 @@
 module Mirage.Patch.NetworkPrefab
 
 open FSharpPlus
+open GameNetcodeStuff
 open HarmonyLib
 open Unity.Netcode
 open Mirage.Core.Config
@@ -41,8 +42,6 @@ type RegisterPrefab() =
                 [   typeof<AudioStream>
                     typeof<ImitatePlayer>
                 ]
-            flip iter (findNetworkPrefabs<HauntedMaskItem> networkManager) <| fun mask ->
-                ignore <| mask.gameObject.AddComponent<MirageSpawner>()
         }
 
     [<HarmonyPostfix>]
@@ -54,3 +53,8 @@ type RegisterPrefab() =
             flip iter (__instance.levels) <| fun level ->
                 flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
                     ignore <| level.Enemies.Remove spawnable
+
+    [<HarmonyPrefix>]
+    [<HarmonyPatch(typeof<PlayerControllerB>, "Awake")>]
+    static member ``register player network prefabs``(__instance: PlayerControllerB) =
+        ignore <| __instance.gameObject.AddComponent<MirageSpawner>()
