@@ -7,13 +7,13 @@ This mod is required by the host and on all clients. Clients that do not have th
 
 ## Features
 
-- Spawn a masked enemy on death (like a player turning into a zombie)
+- Spawn a masked enemy on player death (like a player turning into a zombie, chance is configurable)
    - Mimic the dead player's voice to all nearby players, as well as spectators
    - Use the player's outfit (this is vanilla behaviour)
-   - Remove the mask off of spawned enemy
-   - Remove the arms out animation off of spawned enemy
+   - Remove the mask off of masked enemy
+   - Remove the arms out animation off of masked enemy
+- Naturally spawned masked enemies mimic a random player (with the features mentioned above)
 - Remove the post-round credits penalty (configurable)
-- Vanilla masked enemy spawn is disabled (configurable, this is disabled by default because a mirage only mimics whoever dies)
 - Configuration is synced to all players (only the host's config is used)
 
 ## Planned features
@@ -27,12 +27,9 @@ This will be implemented after I figure out how to filter the undesirable audio 
 
 ## Incompatible mods
 
-While no list of incompatible mods exist yet, this will definitely fail to work with mods that spawn masked enemies.  
-***You should not use any mods that change the masked enemy's spawn rate.***
+[AdvancedCompany](https://thunderstore.io/c/lethal-company/p/PotatoePet/AdvancedCompany/) - I will look into this to make it compatible in the near future.
 
-## Known issues
-
-### Why do players who disconnect no longer get their voice mimicked?
+## Why do players who disconnect no longer get their voice mimicked?
 
 Voices of each player are stored on the respective player's individual storage. Since
 the player is no longer connected, their client cannot send audio clips to other clients.
