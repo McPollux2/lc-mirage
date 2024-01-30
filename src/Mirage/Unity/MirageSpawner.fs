@@ -16,6 +16,7 @@
  *)
 module Mirage.Unity.MirageSpawner
 
+open GameNetcodeStuff
 open Unity.Netcode
 open FSharpPlus
 open Mirage.Core.Logger
@@ -25,28 +26,34 @@ type SpawnParams =
     {   mutable clientId: uint64
         mutable suitId: int
         mutable isEnemyOutside: bool
-        mutable maskType: int
     }
     interface INetworkSerializable with
         member this.NetworkSerialize(serializer: BufferSerializer<'T>) : unit =
             serializer.SerializeValue(&this.clientId)
             serializer.SerializeValue(&this.suitId)
             serializer.SerializeValue(&this.isEnemyOutside)
-            serializer.SerializeValue(&this.maskType)
 
 /// <summary>
-/// Create spawn params using the given mask item.
+/// Create spawn params using the given player.
 /// </summary>
-let createSpawnParams (maskItem: HauntedMaskItem) =
-    let clientId = maskItem.previousPlayerHeldBy.actualClientId
-    let suitId = maskItem.previousPlayerHeldBy.currentSuitID
-    let isEnemyOutside = not maskItem.previousPlayerHeldBy.isInsideFactory
-    let maskType = maskItem.maskTypeId
+let createSpawnParams (player: PlayerControllerB) =
+    let clientId = player.actualClientId
+    let suitId = player.currentSuitID
+    let isEnemyOutside = not player.isInsideFactory
     {   clientId = clientId
         suitId = suitId
         isEnemyOutside = isEnemyOutside
-        maskType = maskType
     }
+
+/// <summary>
+/// Set the player to mimic the visuals/voice.
+/// </summary>
+let setMiragePlayer (mirage: MaskedPlayerEnemy) (player: PlayerControllerB) =
+    mirage.mimickingPlayer <- player
+    mirage.SetSuit player.currentSuitID
+    mirage.SetEnemyOutside (not player.isInsideFactory)
+    mirage.SetVisibilityOfMaskedEnemy()
+    player.redirectToEnemy <- mirage
 
 /// <summary>
 /// Spawns a mirage, synchronizing the initial state with all clients.
@@ -68,12 +75,7 @@ type MirageSpawner() =
             let playerId = StartOfRound.Instance.ClientPlayerList[spawnParams.clientId]
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
             let mirage = mirageObject.GetComponent<MaskedPlayerEnemy>()
-            mirage.mimickingPlayer <- player
-            mirage.SetSuit player.currentSuitID
-            mirage.SetEnemyOutside spawnParams.isEnemyOutside
-            mirage.SetMaskType spawnParams.maskType
-            mirage.SetVisibilityOfMaskedEnemy()
-            player.redirectToEnemy <- mirage
+            setMiragePlayer mirage player
 
     /// <summary>
     /// Whether a Mirage has been spawned or not.
@@ -88,13 +90,11 @@ type MirageSpawner() =
             if not this.IsHost then logError "MirageSpawner#SpawnMirage can only be invoked by the host."
             else
                 spawned <- true
-                let spawnParams = createSpawnParams mask
-                let playerId = StartOfRound.Instance.ClientPlayerList[spawnParams.clientId]
-                let player = StartOfRound.Instance.allPlayerScripts[playerId]
+                let spawnParams = createSpawnParams mask.previousPlayerHeldBy
                 let mirageReference =
                     RoundManager.Instance.SpawnEnemyGameObject(
                         mask.previousPlayerHeldBy.transform.position,
-                        player.transform.eulerAngles.y,
+                        mask.previousPlayerHeldBy.transform.eulerAngles.y,
                         -1,
                         mask.mimicEnemy
                     )

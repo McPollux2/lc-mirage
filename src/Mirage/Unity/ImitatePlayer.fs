@@ -74,7 +74,7 @@ type ImitatePlayer() =
         audioSource.spatialBlend <- 1f
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
         setNullable Mirage mirage
-        if mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
+        if not (isNull mirage.mimickingPlayer) && mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
             toUniTask_ canceller.Token <| runImitationLoop this
 
     override _.OnDestroy() =

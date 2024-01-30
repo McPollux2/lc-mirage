@@ -56,14 +56,14 @@ type private LocalConfig(config: ConfigFile) =
         )
     member val EnableNaturalSpawn =
         config.Bind<bool>(
-            "MaskedPlayerEnemy",
+            maskedSection,
             "EnableNaturalSpawn",
             false,
-            "Whether or not masked enemies should naturally spawn. Enabling this can potentially cause issues."
+            "Whether or not masked enemies should naturally spawn. Naturally spawned masked enemies mimic a random player."
         )
     member val SpawnOnPlayerDeath =
         config.Bind<int>(
-            "MaskedPlayerEnemy",
+            maskedSection,
             "SpawnOnPlayerDeath",
             100,
             "The percent chance of a masked enemy spawning on player death (like a zombie). Must have a value of 0-100."
