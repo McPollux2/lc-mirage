@@ -58,3 +58,4 @@ If you're making small changes for your friends, you will need to share the comp
 
 - Spawn on player death is now configurable.
 - Naturally spawned masked enemies now mimic a player at random.
+- Dependencies are now separated into its own packages.
