@@ -47,3 +47,14 @@ If you're making small changes for your friends, you will need to share the comp
 
 - [RugbugRedfern](https://rugbug.net) - Mirage is based off of rugbug's mod. This wouldn't exist without their ingenuity!
 - [Evaisa](https://github.com/EvaisaDev) - For creating the amazing [UnityNetcodePatcher](https://github.com/EvaisaDev/UnityNetcodePatcher), which this mod uses during its build process.
+
+## Changelog
+
+### 1.0.0
+
+- Initial release.
+
+### 1.0.1
+
+- Spawn on player death is now configurable.
+- Naturally spawned masked enemies now mimic a player at random.
