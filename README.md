@@ -1,9 +1,7 @@
 # Mirage
 
 Mirage is a mod that gives masked enemies the ability to mimic a player's voice (fully synced to all players).  
-This mod is required by the host and on all clients. Clients that do not have the mod will run into desynchronization issues.
-
-**Note: Only push-to-talk is supported. Using voice activity will result in no voice playback.**
+**This mod is required by the host and on all clients.** Clients that do not have the mod will run into desynchronization issues.
 
 ## Features
 
@@ -15,13 +13,6 @@ This mod is required by the host and on all clients. Clients that do not have th
 - Naturally spawned masked enemies mimic a random player (with the features mentioned above)
 - Remove the post-round credits penalty (configurable)
 - Configuration is synced to all players (only the host's config is used)
-
-## When will you support voice activity?
-
-While voice activity was initially intended for the initial release, its current implementation results in a lot of undesirable audio clips,
-causing voice playback to rarely mimic the clips that you would normally expect.
-
-This will be implemented after I figure out how to filter the undesirable audio clips, but is currently a low priority for me.
 
 ## Recommended mods
 
@@ -65,3 +56,7 @@ If you're making small changes for your friends, you will need to share the comp
 ### 1.0.2
 
 - Bundled all dependencies I control into a single core lib (users now pull less packages).
+
+### 1.0.3
+
+- Support voice activity.
