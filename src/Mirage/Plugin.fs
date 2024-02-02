@@ -24,13 +24,13 @@ open HarmonyLib
 open Netcode
 open NAudio.Lame
 open Mirage.PluginInfo
-open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMirage
 open Mirage.Patch.NetworkPrefab
 open Mirage.Patch.SyncConfig
 open Mirage.Patch.RemovePenalty
 open Mirage.Core.Config
 open Mirage.Core.Logger
+open Mirage.Patch.RecordAudio
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =

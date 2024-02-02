@@ -36,18 +36,21 @@ let private RecordingDirectory = $"{Application.dataPath}/../Mirage"
 let createRecording format =
     let filePath = $"{RecordingDirectory}/{DateTime.UtcNow.ToFileTime()}.wav"
     let recording = new AudioFileWriter(filePath, format)
-    recording
+    (filePath, recording)
 
 /// <summary>
 /// Whether or not samples should still be recorded.<br />
 /// If false, the recording should be disposed.
 /// </summary>
-let isRecording (dissonance: DissonanceComms) =
-    not (isNull GameNetworkManager.Instance)
-        && not (isNull GameNetworkManager.Instance.localPlayerController)
-        && not GameNetworkManager.Instance.localPlayerController.isPlayerDead
-        && IngamePlayerSettings.Instance.settings.pushToTalk
-        && not dissonance.IsMuted
+let isRecording (dissonance: DissonanceComms) (speechDetected : bool) =
+    let isPlayerDead =
+        not (isNull GameNetworkManager.Instance)
+            && not (isNull GameNetworkManager.Instance.localPlayerController)
+            && not GameNetworkManager.Instance.localPlayerController.isPlayerDead
+    let pushToTalkEnabled = IngamePlayerSettings.Instance.settings.pushToTalk
+    let pushToTalkPressed = pushToTalkEnabled && not dissonance.IsMuted
+    let voiceActivated = not pushToTalkEnabled && speechDetected
+    isPlayerDead && (pushToTalkPressed || voiceActivated)
 
 /// <summary>
 /// Delete the recordings of the local player.
