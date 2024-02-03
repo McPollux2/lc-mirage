@@ -18,10 +18,6 @@ Mirage is a mod that gives masked enemies the ability to mimic a player's voice 
 
 [DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) - This plugin significantly reduces the duration of lag spikes simply by changing the log level of DissonanceVoip.
 
-## Incompatible mods
-
-[AdvancedCompany](https://thunderstore.io/c/lethal-company/p/PotatoePet/AdvancedCompany/) - I will look into this to make it compatible in the near future.
-
 ## Why do players who disconnect no longer get their voice mimicked?
 
 Voices of each player are stored on the respective player's individual storage. Since
