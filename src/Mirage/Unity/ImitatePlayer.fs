@@ -39,12 +39,10 @@ type ImitatePlayer() =
     let canceller = new CancellationTokenSource()
 
     let AudioStream = field<AudioStream>()
-    let Mirage = field<MaskedPlayerEnemy>()
 
-    let imitatePlayer (this: ImitatePlayer) =
+    let imitatePlayer (this: ImitatePlayer) (mirage: MaskedPlayerEnemy) =
         ignore <| monad' {
             let! audioStream = getValue AudioStream
-            let! mirage = getValue Mirage
             flip iter (getRandomRecording random) <| fun recording ->
                 try
                     if this.IsHost then
@@ -55,16 +53,17 @@ type ImitatePlayer() =
                     logError $"Failed to imitate player: {error}"
         }
 
-    let rec runImitationLoop this =
+    let rec runImitationLoop this mirage =
         async {
             try
-                imitatePlayer this
+                imitatePlayer this mirage
             with | error ->
                 logError $"Failed to imitate player: {error}"
             let config = getConfig()
             let delay = random.Next(config.imitateMinDelay, config.imitateMaxDelay + 1)
             return! liftAsync <| Async.Sleep delay
-            return! runImitationLoop this
+            if not mirage.isEnemyDead then
+                return! runImitationLoop this mirage
         }
 
     member this.Start() =
@@ -73,9 +72,8 @@ type ImitatePlayer() =
         let audioSource = audioStream.GetAudioSource()
         audioSource.spatialBlend <- 1f
         let mirage = this.gameObject.GetComponent<MaskedPlayerEnemy>()
-        setNullable Mirage mirage
         if not (isNull mirage.mimickingPlayer) && mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
-            toUniTask_ canceller.Token <| runImitationLoop this
+            toUniTask_ canceller.Token <| runImitationLoop this mirage
 
     override _.OnDestroy() =
         canceller.Cancel()
