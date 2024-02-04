@@ -56,3 +56,9 @@ If you're making small changes for your friends, you will need to share the comp
 ### 1.0.3
 
 - Support voice activity.
+
+### 1.0.4
+
+- Support voice mimicking on all vanilla enemies.
+- Add configuration option for mask texture and arms-out animation (for masked enemies).
+- Dead enemies no longer mimic voices.
