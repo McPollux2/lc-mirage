@@ -147,21 +147,21 @@ type SpawnMirage() =
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>)>]
     [<HarmonyPatch("SetHandsOutServerRpc")>]
     [<HarmonyPatch("SetHandsOutClientRpc")>]
-    static member ``disable mirage hands out``() = false
+    static member ``disable mirage hands out``() = getConfig().enableArmsOut
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Start")>]
     static member ``remove mask texture and mimic a random player if enabled``(__instance: MaskedPlayerEnemy) =
-        __instance.GetComponentsInChildren<Transform>()
-            |> filter _.name.StartsWith("HeadMask")
-            |> iter _.gameObject.SetActive(false)
-
         let player = __instance.mimickingPlayer
         if isNull player then
             let players = StartOfRound.Instance.allPlayerScripts
             let playerId = random.Next <| StartOfRound.Instance.connectedPlayersAmount + 1
             let player = players[playerId]
             setMiragePlayer __instance player
+        if not <| getConfig().enableMask then
+            __instance.GetComponentsInChildren<Transform>()
+                |> filter _.name.StartsWith("HeadMask")
+                |> iter _.gameObject.SetActive(false)
 
     /// <summary>
     /// Since MaskedPlayerEnemy#killAnimation spawns a mimic, this patch finds the spawn instructions and disables it.<br />

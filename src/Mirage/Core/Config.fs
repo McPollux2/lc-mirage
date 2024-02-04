@@ -59,7 +59,7 @@ type private LocalConfig(config: ConfigFile) =
             maskedSection,
             "EnableNaturalSpawn",
             false,
-            "Whether or not masked enemies should naturally spawn. Naturally spawned masked enemies mimic a random player."
+            "Whether or not masked enemies should naturally spawn. Set this to false if you only want to spawn on player death. Set this to true if you want the vanilla spawning behaviour."
         )
     member val SpawnOnPlayerDeath =
         config.Bind<int>(
@@ -67,6 +67,20 @@ type private LocalConfig(config: ConfigFile) =
             "SpawnOnPlayerDeath",
             100,
             "The percent chance of a masked enemy spawning on player death (like a zombie). Must have a value of 0-100."
+        )
+    member val EnableMask =
+        config.Bind<bool>(
+            maskedSection,
+            "EnableMask",
+            false,
+            "Whether or not a masked enemy should have its mask texture"
+        )
+    member val EnableArmsOut =
+        config.Bind<bool>(
+            maskedSection,
+            "EnableArmsOut",
+            false,
+            "Whether or not the arms out animation should be used."
         )
 
 /// <summary>
@@ -80,6 +94,8 @@ type SyncedConfig =
         enablePenalty: bool
         enableNaturalSpawn: bool
         spawnOnPlayerDeath: int
+        enableMask: bool
+        enableArmsOut: bool
     }
 
 let private toSyncedConfig (config: LocalConfig) =
@@ -88,6 +104,8 @@ let private toSyncedConfig (config: LocalConfig) =
         enablePenalty = config.EnablePenalty.Value
         enableNaturalSpawn = config.EnableNaturalSpawn.Value
         spawnOnPlayerDeath = config.SpawnOnPlayerDeath.Value
+        enableMask = config.EnableMask.Value
+        enableArmsOut = config.EnableArmsOut.Value
     }
 
 /// <summary>
