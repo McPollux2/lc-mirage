@@ -154,8 +154,9 @@ type SpawnMirage() =
     static member ``remove mask texture and mimic a random player if enabled``(__instance: MaskedPlayerEnemy) =
         let player = __instance.mimickingPlayer
         if isNull player then
-            let players = StartOfRound.Instance.allPlayerScripts
-            let playerId = random.Next <| StartOfRound.Instance.connectedPlayersAmount + 1
+            let round = StartOfRound.Instance
+            let players = round.allPlayerScripts
+            let playerId = random.Next <| round.connectedPlayersAmount + 1
             let player = players[playerId]
             setMiragePlayer __instance player
         if not <| getConfig().enableMask then

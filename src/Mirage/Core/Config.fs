@@ -47,6 +47,132 @@ type private LocalConfig(config: ConfigFile) =
             12000,
             "The maximum amount of time in between voice playbacks (in milliseconds)."
         )
+    member val EnableMaskedEnemy =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableMaskedEnemy",
+            true,
+            "Whether or not the masked enemy should mimic voices."
+        )
+    member val EnableBaboonHawk =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableBaboonHawk",
+            false,
+            "Whether or not the baboon hawk should mimic voices."
+        )
+    member val EnableBracken =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableBracken",
+            false,
+            "Whether or not the bracken should mimic voices."
+        )
+    member val EnableSpider =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableSpider",
+            false,
+            "Whether or not the spider should mimic voices."
+        )
+    member val EnableBees =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableBees",
+            false,
+            "Whether or not bees should mimic voices."
+        )
+    member val EnableCoilHead =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableCoilHead",
+            false,
+            "Whether or not the coil-head should mimic voices."
+        )
+    member val EnableEarthLeviathan =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableEarthLeviathan",
+            false,
+            "Whether or not the earth leviathan should mimic voices."
+        )
+    member val EnableEyelessDog =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableEyelessDog",
+            false,
+            "Whether or not the eyeless dog should mimic voices."
+        )
+    member val EnableForestKeeper =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableForestKeeper",
+            false,
+            "Whether or not the forest keeper should mimic voices."
+        )
+    member val EnableGhostGirl =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableGhostgirl",
+            false,
+            "Whether or not the ghost girl should mimic voices."
+        )
+    member val EnableHoardingBug =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableHoardingBug",
+            false,
+            "Whether or not the hoarding bug should mimic voices."
+        )
+    member val EnableHygrodere =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableHygrodere",
+            false,
+            "Whether or not the hygrodere should mimic voices."
+        )
+    member val EnableJester =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableJester",
+            false,
+            "Whether or not the jester should mimic voices."
+        )
+    member val EnableManticoil =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableManticoil",
+            false,
+            "Whether or not the manticoil should mimic voices."
+        )
+    member val EnableNutcracker =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableNutcracker",
+            false,
+            "Whether or not the nutcracker should mimic voices."
+        )
+    member val EnableSnareFlea =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableSnareFlea",
+            false,
+            "Whether or not the snare flea should mimic voices."
+        )
+    member val EnableSporeLizard =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableSporeLizard",
+            false,
+            "Whether or not the spore lizard should mimic voices."
+        )
+    member val EnableThumper =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableThumper",
+            false,
+            "Whether or not the thumper should mimic voices."
+        )
     member val EnablePenalty =
         config.Bind<bool>(
             "Credits",
@@ -91,6 +217,24 @@ type private LocalConfig(config: ConfigFile) =
 type SyncedConfig =
     {   imitateMinDelay: int
         imitateMaxDelay: int
+        enableMaskedEnemy: bool
+        enableBaboonHawk: bool
+        enableBracken: bool
+        enableSpider: bool
+        enableBees: bool
+        enableCoilHead: bool
+        enableEarthLeviathan: bool
+        enableEyelessDog: bool
+        enableForestKeeper: bool
+        enableGhostGirl: bool
+        enableHoardingBug: bool
+        enableHygrodere: bool
+        enableJester: bool
+        enableManticoil: bool
+        enableNutcracker: bool
+        enableSnareFlea: bool
+        enableSporeLizard: bool
+        enableThumper: bool
         enablePenalty: bool
         enableNaturalSpawn: bool
         spawnOnPlayerDeath: int
@@ -101,6 +245,24 @@ type SyncedConfig =
 let private toSyncedConfig (config: LocalConfig) =
     {   imitateMinDelay = config.ImitateMinDelay.Value
         imitateMaxDelay = config.ImitateMaxDelay.Value
+        enableMaskedEnemy = config.EnableMaskedEnemy.Value
+        enableBaboonHawk = config.EnableBaboonHawk.Value
+        enableBracken = config.EnableBracken.Value
+        enableSpider = config.EnableSpider.Value
+        enableBees = config.EnableBees.Value
+        enableCoilHead = config.EnableCoilHead.Value
+        enableEarthLeviathan = config.EnableEarthLeviathan.Value
+        enableEyelessDog = config.EnableEyelessDog.Value
+        enableForestKeeper = config.EnableForestKeeper.Value
+        enableGhostGirl = config.EnableGhostGirl.Value
+        enableHoardingBug = config.EnableHoardingBug.Value
+        enableHygrodere = config.EnableHygrodere.Value
+        enableJester = config.EnableJester.Value
+        enableManticoil = config.EnableManticoil.Value
+        enableNutcracker = config.EnableNutcracker.Value
+        enableSnareFlea = config.EnableSnareFlea.Value
+        enableSporeLizard = config.EnableSporeLizard.Value
+        enableThumper = config.EnableThumper.Value
         enablePenalty = config.EnablePenalty.Value
         enableNaturalSpawn = config.EnableNaturalSpawn.Value
         spawnOnPlayerDeath = config.SpawnOnPlayerDeath.Value

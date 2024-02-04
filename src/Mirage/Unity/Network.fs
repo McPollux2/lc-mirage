@@ -27,6 +27,9 @@ open System
 let isValidClient (behaviour: NetworkBehaviour) (serverParams: ServerRpcParams) =
     behaviour.NetworkManager.ConnectedClients.ContainsKey serverParams.Receive.SenderClientId
 
+let isPrefab<'A when 'A : null> (networkPrefab: NetworkPrefab) =
+    not << isNull <| networkPrefab.Prefab.GetComponent<'A>()
+
 let inline private findPrefabFunctor
         (resultType: Type)
         (toFunctor: (NetworkPrefab -> bool) -> List<NetworkPrefab> -> '``Functor<'NetworkPrefab>``)
