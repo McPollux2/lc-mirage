@@ -18,7 +18,6 @@ module Mirage.Unity.ImitatePlayer
 
 #nowarn "40"
 
-open System
 open FSharpPlus
 open Unity.Netcode
 open System.Threading
@@ -29,6 +28,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Core.Audio.Recording
 open Mirage.Unity.AudioStream
+open UnityEngine
 
 /// <summary>
 /// A component that can attach to <b>MaskedPlayerEnemy</b> entities and imitate a specific player.
@@ -36,10 +36,15 @@ open Mirage.Unity.AudioStream
 type ImitatePlayer() =
     inherit NetworkBehaviour()
 
-    let random = new Random()
+    let random = new System.Random()
     let canceller = new CancellationTokenSource()
+    let mutable checkInterval = Random.Range(0f, 0.4f)
+    let mutable occluded = false
 
+    let Enemy = field<EnemyAI>()
     let AudioStream = field<AudioStream>()
+    let LowPassFilter = field<AudioLowPassFilter>()
+    let ReverbFilter = field<AudioReverbFilter>()
 
     let imitatePlayer (this: ImitatePlayer) (player: PlayerControllerB) =
         ignore <| monad' {
@@ -70,20 +75,37 @@ type ImitatePlayer() =
     let startImitation this enemy player = 
         toUniTask_ canceller.Token <| runImitationLoop this enemy player
 
+    let isOccluded (this: ImitatePlayer) =
+        StartOfRound.Instance <> null
+            && Physics.Linecast(this.transform.position, StartOfRound.Instance.audioListener.transform.position, 256, QueryTriggerInteraction.Ignore)
+
+    member this.Awake() =
+        let lowPassFilter = this.gameObject.AddComponent<AudioLowPassFilter>()
+        lowPassFilter.cutoffFrequency <- 20000f
+        set LowPassFilter lowPassFilter
+        let reverbFilter = this.gameObject.AddComponent<AudioReverbFilter>()
+        reverbFilter.reverbPreset <- AudioReverbPreset.User
+        reverbFilter.dryLevel <- -1f
+        reverbFilter.decayTime <- 0.8f
+        reverbFilter.room <- -2300f
+        set ReverbFilter reverbFilter
+
     member this.Start() =
         let audioStream = this.gameObject.GetComponent<AudioStream>()
         set AudioStream audioStream
         let audioSource = audioStream.GetAudioSource()
         audioSource.spatialBlend <- 1f
+        occluded <- isOccluded this
 
         let config = getConfig()
         let enemy = this.gameObject.GetComponent<EnemyAI>()
+        set Enemy enemy
         if this.IsHost && enemy :? MaskedPlayerEnemy then
             let mirage = enemy :?> MaskedPlayerEnemy
             if config.enableMaskedEnemy && mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
                 startImitation this mirage mirage.mimickingPlayer
         else
-            let random = new Random()
+            let random = new System.Random()
             let round = StartOfRound.Instance
             let imitate enabled =
                 if enabled then
@@ -125,3 +147,50 @@ type ImitatePlayer() =
     member this.ImitatePlayerClientRpc(_: ClientRpcParams) =
         let enemy = this.GetComponent<EnemyAI>()
         startImitation this enemy StartOfRound.Instance.localPlayerController
+
+    member this.Update() =
+        // TODO: Use result instead to get proper error messages.
+        ignore <| monad' {
+            let! audioStream = getValue AudioStream
+            let audioSource = audioStream.GetAudioSource()
+            let! lowPassFilter = getValue LowPassFilter
+            let! reverbFilter = getValue ReverbFilter
+            let! enemy = getValue Enemy
+            let round = StartOfRound.Instance
+            let localPlayer = round.localPlayerController
+            
+            if enemy.isEnemyDead then
+                audioSource.mute <- true
+            else if enemy.isOutside then
+                reverbFilter.enabled <- false
+                audioSource.mute <- localPlayer.isInsideFactory
+            else
+                audioSource.mute <- not localPlayer.isInsideFactory
+                let listenerPosition = round.audioListener.transform.position
+                let distanceToListener = Vector3.Distance(listenerPosition, this.transform.position)
+                let normalizedDistanceReverb = 0f - 3.4f * (distanceToListener / (audioSource.maxDistance / 5f))
+                let clampedDryLevel = Mathf.Clamp(normalizedDistanceReverb, -300f, -1f)
+                let lerpFactorReverb = Time.deltaTime * 8f
+                reverbFilter.dryLevel <-
+                    Mathf.Lerp(
+                        reverbFilter.dryLevel,
+                        clampedDryLevel,
+                        lerpFactorReverb
+                    )
+                reverbFilter.enabled <- true
+
+            if occluded then
+                let distance = Vector3.Distance(StartOfRound.Instance.audioListener.transform.position, this.transform.position)
+                let normalizedDistance = 2500f / (distance / (audioSource.maxDistance / 2f))
+                let clampedFrequency = Mathf.Clamp(normalizedDistance, 900f, 4000f)
+                let lerpFactor = Time.deltaTime * 8f
+                lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, clampedFrequency, lerpFactor)
+            else
+                lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, 10000f, Time.deltaTime * 8f);
+            
+            if checkInterval >= 0.5f then
+                checkInterval <- 0f
+                occluded <- isOccluded this
+            else
+                checkInterval <- checkInterval + Time.deltaTime
+        }
