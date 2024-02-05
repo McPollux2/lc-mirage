@@ -168,7 +168,7 @@ type ImitatePlayer() =
                 audioSource.mute <- not localPlayer.isInsideFactory
                 let listenerPosition = round.audioListener.transform.position
                 let distanceToListener = Vector3.Distance(listenerPosition, this.transform.position)
-                let normalizedDistanceReverb = 0f - 3.4f * (distanceToListener / (audioSource.maxDistance / 5f))
+                let normalizedDistanceReverb = 0f - 3.4f * distanceToListener / audioSource.maxDistance / 5f
                 let clampedDryLevel = Mathf.Clamp(normalizedDistanceReverb, -300f, -1f)
                 let lerpFactorReverb = Time.deltaTime * 8f
                 reverbFilter.dryLevel <-
@@ -181,7 +181,7 @@ type ImitatePlayer() =
 
             if occluded then
                 let distance = Vector3.Distance(StartOfRound.Instance.audioListener.transform.position, this.transform.position)
-                let normalizedDistance = 2500f / (distance / (audioSource.maxDistance / 2f))
+                let normalizedDistance = 2500f / distance / audioSource.maxDistance / 2f
                 let clampedFrequency = Mathf.Clamp(normalizedDistance, 900f, 4000f)
                 let lerpFactor = Time.deltaTime * 8f
                 lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, clampedFrequency, lerpFactor)
