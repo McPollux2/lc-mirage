@@ -1,6 +1,6 @@
 {
     "name": "Mirage",
-    "version_number": "1.0.4",
+    "version_number": "1.0.5",
     "website_url": "https://github.com/qwbarch/lc-mirage",
     "description": "Synced voice mimics (all players hear the same voice)",
     "dependencies": [

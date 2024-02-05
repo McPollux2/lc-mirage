@@ -62,3 +62,9 @@ If you're making small changes for your friends, you will need to share the comp
 - Support voice mimicking on all vanilla enemies.
 - Add configuration option for mask texture and arms-out animation (for masked enemies).
 - Dead enemies no longer mimic voices.
+
+### 1.0.5
+
+- Use audio filters to sound more like vanilla voices
+- Mimicked voices on the outside can no longer be heard from inside the facility (and vice-versa)
+- Masked enemies no longer mimic voices while hiding on the ship
