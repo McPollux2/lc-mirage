@@ -71,7 +71,7 @@ type AudioStream() =
 
     let getAudioSource = get AudioSource "AudioSource"
     let getAudioSender = get AudioSender "AudioSender"
-    let getAudioReceiver = get AudioReceiver "AudioReciever"
+    let getAudioReceiver = get AudioReceiver "AudioReceiver"
     let getCurrentUpload = get CurrentUpload "CurrentUpload"
 
     let canceller = new CancellationTokenSource()

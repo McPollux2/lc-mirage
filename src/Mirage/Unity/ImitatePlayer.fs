@@ -159,7 +159,7 @@ type ImitatePlayer() =
             let round = StartOfRound.Instance
             let localPlayer = round.localPlayerController
             
-            if enemy.isEnemyDead then
+            if enemy.isEnemyDead || enemy :? MaskedPlayerEnemy && (enemy :?> MaskedPlayerEnemy).crouching then
                 audioSource.mute <- true
             else if enemy.isOutside then
                 reverbFilter.enabled <- false
