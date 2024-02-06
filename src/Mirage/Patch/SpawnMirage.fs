@@ -112,36 +112,30 @@ type SpawnMirage() =
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
-    static member ``spawn mirage on player death``(__instance: PlayerControllerB) =
+    static member ``spawn mirage on player death``(__instance: PlayerControllerB, causeOfDeath: int, deathAnimation: int) =
         handleResult <| monad' {
-            if __instance.IsHost then
-                // For whatever reason, KillPlayerServerRpc is invoked twice, per player death.
-                // PlayerTracker is used to ensure spawning only happens once.
-                let! playerTracker = getPlayerTracker "``spawn mirage on player death``"
-                if isPlayerTracked playerTracker __instance then
-                    set PlayerTracker <| removePlayer playerTracker __instance
-                    if random.Next(1, 101) <= getConfig().spawnOnPlayerDeath then
-                        let! maskPrefab = getMask "``spawn mirage on player death``"
-                        let mask = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
-                        mask.transform.localScale <- Vector3.zero
-                        mask.previousPlayerHeldBy <- __instance
-                        mask.NetworkObject.Spawn()
-                        let mirageSpawner = __instance.GetComponent<MirageSpawner>()
-                        mirageSpawner.SpawnMirage mask
-                        mask.NetworkObject.Despawn()
+            // For whatever reason, KillPlayerServerRpc is invoked twice, per player death.
+            // PlayerTracker is used to ensure spawning only happens once.
+            let! playerTracker = getPlayerTracker "``spawn mirage on player death``"
+            if __instance.IsHost && isPlayerTracked playerTracker __instance then
+                set PlayerTracker <| removePlayer playerTracker __instance
+                let playerKilledByMasked = (causeOfDeath = (int) CauseOfDeath.Strangulation && deathAnimation = 4)
+                if playerKilledByMasked || random.Next(1, 101) <= getConfig().spawnOnPlayerDeath then
+                    let! maskPrefab = getMask "``spawn mirage on player death``"
+                    let mask = UnityEngine.Object.Instantiate<GameObject>(maskPrefab.gameObject).GetComponent<HauntedMaskItem>()
+                    mask.transform.localScale <- Vector3.zero
+                    mask.previousPlayerHeldBy <- __instance
+                    mask.NetworkObject.Spawn()
+                    let mirageSpawner = __instance.GetComponent<MirageSpawner>()
+                    mirageSpawner.SpawnMirage mask
+                    mask.NetworkObject.Despawn()
         }
 
-    [<HarmonyPrefix>]
-    [<HarmonyPatch(typeof<HauntedMaskItem>, "CreateMimicServerRpc")>]
-    static member ``use mirage spawner instead of default create mimic server rpc``(__instance: HauntedMaskItem) =
-        if __instance.IsHost && not __instance.previousPlayerHeldBy.isPlayerDead then
-            __instance.previousPlayerHeldBy.KillPlayer(Vector3.zero, false, CauseOfDeath.Suffocation, __instance.maskTypeId)
-        false
-
-    [<HarmonyPrefix>]
+    [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "SpawnDeadBody")>]
     static member ``disable player corpse spawn``(__instance: PlayerControllerB) =
-        not <| __instance.GetComponent<MirageSpawner>().IsSpawned()
+        if __instance.GetComponent<MirageSpawner>().IsSpawned() then
+            __instance.deadBody.DeactivateBody(false) // Allows TakeYourMaskOff to recover body
 
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>)>]

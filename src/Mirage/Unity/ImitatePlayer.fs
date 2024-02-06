@@ -110,9 +110,9 @@ type ImitatePlayer() =
         let config = getConfig()
         let enemy = this.gameObject.GetComponent<EnemyAI>()
         set Enemy enemy
-        if this.IsHost && enemy :? MaskedPlayerEnemy then
+        if enemy :? MaskedPlayerEnemy then
             let mirage = enemy :?> MaskedPlayerEnemy
-            if isNull mirage.mimickingPlayer then
+            if this.IsHost && isNull mirage.mimickingPlayer then
                 let round = StartOfRound.Instance
                 let players = round.allPlayerScripts
                 let playerId = random.Next <| round.connectedPlayersAmount + 1
