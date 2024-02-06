@@ -48,7 +48,7 @@ let createSpawnParams (player: PlayerControllerB) =
 /// <summary>
 /// Set the player to mimic the visuals/voice.
 /// </summary>
-let setMiragePlayer (mirage: MaskedPlayerEnemy) (player: PlayerControllerB) =
+let mimicPlayer (mirage: MaskedPlayerEnemy) (player: PlayerControllerB) =
     mirage.mimickingPlayer <- player
     mirage.SetSuit player.currentSuitID
     mirage.SetEnemyOutside (not player.isInsideFactory)
@@ -75,7 +75,7 @@ type MirageSpawner() =
             let playerId = StartOfRound.Instance.ClientPlayerList[spawnParams.clientId]
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
             let mirage = mirageObject.GetComponent<MaskedPlayerEnemy>()
-            setMiragePlayer mirage player
+            mimicPlayer mirage player
 
     /// <summary>
     /// Whether a Mirage has been spawned or not.

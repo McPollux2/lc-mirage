@@ -16,8 +16,6 @@
  *)
 module Mirage.Unity.ImitatePlayer
 
-#nowarn "40"
-
 open FSharpPlus
 open Unity.Netcode
 open System.Threading
@@ -28,6 +26,7 @@ open Mirage.Core.Logger
 open Mirage.Core.Monad
 open Mirage.Core.Audio.Recording
 open Mirage.Unity.AudioStream
+open Mirage.Unity.MirageSpawner
 open UnityEngine
 
 /// <summary>
@@ -40,6 +39,11 @@ type ImitatePlayer() =
     let canceller = new CancellationTokenSource()
     let mutable checkInterval = Random.Range(0f, 0.4f)
     let mutable occluded = false
+
+    // Bandaid fix to prevent imitation from running twice if it's already been started
+    // in .Start(), and has been requested to run in the client rpc.
+    // TODO: Make this more proper, this bandaid fix definitely isn't required.
+    let mutable started = false
 
     let Enemy = field<EnemyAI>()
     let AudioStream = field<AudioStream>()
@@ -73,11 +77,17 @@ type ImitatePlayer() =
         }
     
     let startImitation this enemy player = 
-        toUniTask_ canceller.Token <| runImitationLoop this enemy player
+        if not started then
+            started <- true
+            toUniTask_ canceller.Token <| runImitationLoop this enemy player
 
     let isOccluded (this: ImitatePlayer) =
         StartOfRound.Instance <> null
             && Physics.Linecast(this.transform.position, StartOfRound.Instance.audioListener.transform.position, 256, QueryTriggerInteraction.Ignore)
+
+    let imitateVoiceIfLocalPlayer this (mirage: MaskedPlayerEnemy) config =
+        if config.enableMaskedEnemy && mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
+            startImitation this mirage mirage.mimickingPlayer
 
     member this.Awake() =
         let lowPassFilter = this.gameObject.AddComponent<AudioLowPassFilter>()
@@ -102,8 +112,13 @@ type ImitatePlayer() =
         set Enemy enemy
         if this.IsHost && enemy :? MaskedPlayerEnemy then
             let mirage = enemy :?> MaskedPlayerEnemy
-            if config.enableMaskedEnemy && mirage.mimickingPlayer.actualClientId = GameNetworkManager.Instance.localPlayerController.actualClientId then
-                startImitation this mirage mirage.mimickingPlayer
+            if isNull mirage.mimickingPlayer then
+                let round = StartOfRound.Instance
+                let players = round.allPlayerScripts
+                let playerId = random.Next <| round.connectedPlayersAmount + 1
+                mimicPlayer mirage players[playerId]
+                this.SetMimickingPlayerClientRpc playerId
+            imitateVoiceIfLocalPlayer this mirage config
         else
             let random = new System.Random()
             let round = StartOfRound.Instance
@@ -143,10 +158,19 @@ type ImitatePlayer() =
         with | _ -> ()
         dispose canceller
     
+    // Only for non-masked enemies. TODO: Redo this source code to be more proper.
     [<ClientRpc>]
     member this.ImitatePlayerClientRpc(_: ClientRpcParams) =
         let enemy = this.GetComponent<EnemyAI>()
         startImitation this enemy StartOfRound.Instance.localPlayerController
+
+    // Only for masked enemies. TODO: Redo this source code to be more proper.
+    [<ClientRpc>]
+    member this.SetMimickingPlayerClientRpc(playerId) =
+        let mirage = this.GetComponent<MaskedPlayerEnemy>()
+        let player = StartOfRound.Instance.allPlayerScripts[playerId]
+        mimicPlayer mirage player
+        imitateVoiceIfLocalPlayer this mirage <| getConfig()
 
     member this.Update() =
         // TODO: Use result instead to get proper error messages.

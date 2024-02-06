@@ -68,7 +68,7 @@ type SpawnMirage() =
             not (isNull GameNetworkManager.Instance.localPlayerController)
                 && __instance = GameNetworkManager.Instance.localPlayerController 
         if __instance.IsHost && isLocalPlayer() then
-            // This will always be the host player.
+            // addPlayer will always be on the host player.
             connectedPlayers[__instance.actualClientId] <- __instance
             let playerTracker = defaultTracker
             set PlayerTracker <| addPlayer playerTracker __instance
@@ -78,7 +78,7 @@ type SpawnMirage() =
     static member ``start tracking player on connect``(__instance: StartOfRound, clientId: uint64) =
         handleResult <| monad' {
             if __instance.IsHost then
-                // This will always be a non-host player.
+                // addPlayer will always be on the non-host player.
                 let playerId = StartOfRound.Instance.ClientPlayerList[clientId]
                 let player = StartOfRound.Instance.allPlayerScripts[playerId]
                 connectedPlayers[clientId] <- player
@@ -151,14 +151,7 @@ type SpawnMirage() =
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Start")>]
-    static member ``remove mask texture and mimic a random player if enabled``(__instance: MaskedPlayerEnemy) =
-        let player = __instance.mimickingPlayer
-        if isNull player then
-            let round = StartOfRound.Instance
-            let players = round.allPlayerScripts
-            let playerId = random.Next <| round.connectedPlayersAmount + 1
-            let player = players[playerId]
-            setMiragePlayer __instance player
+    static member ``remove mask texture``(__instance: MaskedPlayerEnemy) =
         if not <| getConfig().enableMask then
             __instance.GetComponentsInChildren<Transform>()
                 |> filter _.name.StartsWith("HeadMask")
