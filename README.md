@@ -39,4 +39,4 @@ If you're making small changes for your friends, you will need to share the comp
 
 ## Changelog
 
-Click [here](https://thunderstore.io/c/lethal-company/p/qwbarch/Mirage/changelog) to view the changelog.
+To stay up to date with the latest changes, click [here](https://thunderstore.io/c/lethal-company/p/qwbarch/Mirage/changelog) to view the changelog.
