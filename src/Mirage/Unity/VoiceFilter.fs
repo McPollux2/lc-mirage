@@ -79,7 +79,10 @@ type VoiceFilter() =
             let localPlayer = round.localPlayerController
             let maskedEnemyIsHiding () = enemyAI :? MaskedPlayerEnemy && (enemyAI :?> MaskedPlayerEnemy).crouching
             let! mimickingPlayer = getValue MimicPlayer >>= _.GetMimickingPlayer()
-            let isMimicLocalPlayerMuted () = getConfig().muteLocalPlayerVoice && mimickingPlayer = localPlayer
+            let isMimicLocalPlayerMuted () =
+                getConfig().muteLocalPlayerVoice
+                    && mimickingPlayer = localPlayer
+                    && not mimickingPlayer.isPlayerDead
             let isNotHauntedByDressGirl () =
                 if enemyAI :? DressGirlAI then
                     let dressGirlAI = enemyAI :?> DressGirlAI
