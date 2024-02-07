@@ -11,5 +11,6 @@ powershell Compress-Archive^
           "../manifest.json",^
           "../icon.png",^
           "../README.md",^
+          "../CHANGELOG.md",^
           "../LICENSE"^
     -DestinationPath "../bin/mirage.zip"
