@@ -42,3 +42,7 @@ Thanks to [jarylc](https://github.com/jarylc) for the initial [fixes](https://gi
 - Add configuration option to mute the mimicking voice when mimicking the local player
 - Add configuration option to adjust voice mimicking delay for non-masked enemies
 - Add configuration option to mimic voices on modded enemies
+
+### 1.0.7
+
+- Hotfix: If the local player's mimicking voice is muted, it now becomes unmuted when the player is dead
