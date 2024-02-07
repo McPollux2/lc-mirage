@@ -38,14 +38,35 @@ type private LocalConfig(config: ConfigFile) =
             imitateSection,
             "MinimumDelay",
             7000,
-            "The minimum amount of time in between voice playbacks (in milliseconds)."
+            "The minimum amount of time in between voice playbacks (in milliseconds).\nThis only applies for masked enemies."
         )
     member val ImitateMaxDelay =
         config.Bind<int>(
             imitateSection,
             "MaximumDelay",
             12000,
-            "The maximum amount of time in between voice playbacks (in milliseconds)."
+            "The maximum amount of time in between voice playbacks (in milliseconds).\nThis only applies for masked enemies."
+        )
+    member val ImitateMinDelayNonMasked =
+        config.Bind<int>(
+            imitateSection,
+            "MinimumDelayNonMasked",
+            20000,
+            "The minimum amount of time in between voice playbacks (in milliseconds).\nThis only applies for non-masked enemies."
+        )
+    member val ImitateMaxDelayNonMasked =
+        config.Bind<int>(
+            imitateSection,
+            "MaximumDelayNonMasked",
+            40000,
+            "The maximum amount of time in between voice playbacks (in milliseconds).\nThis only applies for non-masked enemies."
+        )
+    member val MuteLocalPlayerVoice =
+        config.Bind<bool>(
+            imitateSection,
+            "MuteLocalPlayerVoice",
+            false,
+            "Whether or not mimicking voices should be muted if it's the local player's voice."
         )
     member val EnableMaskedEnemy =
         config.Bind<bool>(
@@ -173,6 +194,13 @@ type private LocalConfig(config: ConfigFile) =
             false,
             "Whether or not the thumper should mimic voices."
         )
+    member val EnableModdedEnemies =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableModdedEnemies",
+            false,
+            "Whether or not all modded enemies should mimic voices."
+        )
     member val EnablePenalty =
         config.Bind<bool>(
             "Credits",
@@ -193,6 +221,13 @@ type private LocalConfig(config: ConfigFile) =
             "SpawnOnPlayerDeath",
             100,
             "The percent chance of a masked enemy spawning on player death (like a zombie). Must have a value of 0-100."
+        )
+    member val SpawnOnlyWhenPlayerAlone =
+        config.Bind<bool>(
+            maskedSection,
+            "SpawnOnlyWhenPlayerAlone",
+            false,
+            "If set to true, SpawnOnPlayerDeath will only succeed if the dying player is alone."
         )
     member val EnableMask =
         config.Bind<bool>(
@@ -217,6 +252,9 @@ type private LocalConfig(config: ConfigFile) =
 type SyncedConfig =
     {   imitateMinDelay: int
         imitateMaxDelay: int
+        imitateMinDelayNonMasked: int
+        imitateMaxDelayNonMasked: int
+        muteLocalPlayerVoice: bool
         enableMaskedEnemy: bool
         enableBaboonHawk: bool
         enableBracken: bool
@@ -235,9 +273,11 @@ type SyncedConfig =
         enableSnareFlea: bool
         enableSporeLizard: bool
         enableThumper: bool
+        enableModdedEnemies: bool
         enablePenalty: bool
         enableNaturalSpawn: bool
         spawnOnPlayerDeath: int
+        spawnOnlyWhenPlayerAlone: bool
         enableMask: bool
         enableArmsOut: bool
     }
@@ -245,6 +285,9 @@ type SyncedConfig =
 let private toSyncedConfig (config: LocalConfig) =
     {   imitateMinDelay = config.ImitateMinDelay.Value
         imitateMaxDelay = config.ImitateMaxDelay.Value
+        imitateMinDelayNonMasked = config.ImitateMinDelayNonMasked.Value
+        imitateMaxDelayNonMasked = config.ImitateMaxDelayNonMasked.Value
+        muteLocalPlayerVoice = config.MuteLocalPlayerVoice.Value
         enableMaskedEnemy = config.EnableMaskedEnemy.Value
         enableBaboonHawk = config.EnableBaboonHawk.Value
         enableBracken = config.EnableBracken.Value
@@ -263,9 +306,11 @@ let private toSyncedConfig (config: LocalConfig) =
         enableSnareFlea = config.EnableSnareFlea.Value
         enableSporeLizard = config.EnableSporeLizard.Value
         enableThumper = config.EnableThumper.Value
+        enableModdedEnemies = config.EnableModdedEnemies.Value
         enablePenalty = config.EnablePenalty.Value
         enableNaturalSpawn = config.EnableNaturalSpawn.Value
         spawnOnPlayerDeath = config.SpawnOnPlayerDeath.Value
+        spawnOnlyWhenPlayerAlone = config.SpawnOnlyWhenPlayerAlone.Value
         enableMask = config.EnableMask.Value
         enableArmsOut = config.EnableArmsOut.Value
     }

@@ -39,32 +39,4 @@ If you're making small changes for your friends, you will need to share the comp
 
 ## Changelog
 
-### 1.0.0
-
-- Initial release.
-
-### 1.0.1
-
-- Spawn on player death is now configurable.
-- Naturally spawned masked enemies now mimic a player at random.
-- Dependencies are now separated into its own packages.
-
-### 1.0.2
-
-- Bundled all dependencies I control into a single core lib (users now pull less packages).
-
-### 1.0.3
-
-- Support voice activity.
-
-### 1.0.4
-
-- Support voice mimicking on all vanilla enemies.
-- Add configuration option for mask texture and arms-out animation (for masked enemies).
-- Dead enemies no longer mimic voices.
-
-### 1.0.5
-
-- Use audio filters to sound more like vanilla voices
-- Mimicked voices on the outside can no longer be heard from inside the facility (and vice-versa)
-- Masked enemies no longer mimic voices while hiding on the ship
+Click [here](https://thunderstore.io/c/lethal-company/p/qwbarch/Mirage/changelog) to view the changelog.

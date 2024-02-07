@@ -82,7 +82,6 @@
     <Compile Include="Mirage/Core/Logger.fs" />
     <Compile Include="Mirage/Core/Field.fs" />
     <Compile Include="Mirage/Core/Config.fs" />
-    <Compile Include="Mirage/Core/PlayerTracker.fs" />
     <Compile Include="Mirage/Core/Audio/Data.fs" />
     <Compile Include="Mirage/Core/Audio/Format.fs" />
     <Compile Include="Mirage/Core/Audio/Recording.fs" />
@@ -91,13 +90,14 @@
     <Compile Include="Mirage/Core/Audio/Network/Receiver.fs" />
     <Compile Include="Mirage/Core/Audio/Network/Sender.fs" />
     <Compile Include="Mirage/Unity/AudioStream.fs" />
-    <Compile Include="Mirage/Unity/MirageSpawner.fs" />
-    <Compile Include="Mirage/Unity/ImitatePlayer.fs" />
+    <Compile Include="Mirage/Unity/MimicPlayer.fs" />
+    <Compile Include="Mirage/Unity/MimicVoice.fs" />
+    <Compile Include="Mirage/Unity/VoiceFilter.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Patch/NetworkPrefab.fs" />
-    <Compile Include="Mirage/Patch/SpawnMirage.fs" />
     <Compile Include="Mirage/Patch/SyncConfig.fs" />
     <Compile Include="Mirage/Patch/RemovePenalty.fs" />
+    <Compile Include="Mirage/Patch/SpawnMaskedEnemy.fs" />
     <Compile Include="Mirage/Netcode.fs" />
     <Compile Include="Properties/AssemblyInfo.fs" />
     <Compile Include="Mirage/Plugin.fs" />

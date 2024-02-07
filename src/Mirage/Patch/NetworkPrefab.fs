@@ -22,17 +22,21 @@ open HarmonyLib
 open Unity.Netcode
 open Mirage.Core.Config
 open Mirage.Core.Logger
-open Mirage.Unity.ImitatePlayer
+open Mirage.Unity.MimicVoice
 open Mirage.Unity.AudioStream
 open Mirage.Unity.Network
-open Mirage.Unity.MirageSpawner
+open Mirage.Unity.VoiceFilter
+open Mirage.Unity.MimicPlayer
 
 let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPrefab) =
-    let enemy = networkPrefab.Prefab.GetComponent<'A>()
-    if not <| isNull enemy then
-        let enemyAI = enemy :> EnemyAI
-        ignore <| enemyAI.gameObject.AddComponent<AudioStream>()
-        ignore <| enemyAI.gameObject.AddComponent<ImitatePlayer>()
+    let enemyAI = networkPrefab.Prefab.GetComponent<'A>()
+    if not <| isNull enemyAI then
+        iter (ignore << (enemyAI :> EnemyAI).gameObject.AddComponent)
+            [   typeof<AudioStream>
+                typeof<VoiceFilter>
+                typeof<MimicPlayer>
+                typeof<MimicVoice>
+            ]
 
 type RegisterPrefab() =
     [<HarmonyPostfix>]
@@ -48,10 +52,6 @@ type RegisterPrefab() =
                     |> Option.toResultWith "MaskedPlayerEnemy network prefab is missing. This is likely due to a mod incompatibility"
             mirage.enemyType.isDaytimeEnemy <- true
             mirage.enemyType.isOutsideEnemy <- true
-            //iter (ignore << mirage.gameObject.AddComponent)
-            //    [   typeof<AudioStream>
-            //        typeof<ImitatePlayer>
-            //    ]
         }
 
     [<HarmonyPostfix>]
@@ -63,8 +63,3 @@ type RegisterPrefab() =
             flip iter (__instance.levels) <| fun level ->
                 flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
                     ignore <| level.Enemies.Remove spawnable
-
-    [<HarmonyPrefix>]
-    [<HarmonyPatch(typeof<PlayerControllerB>, "Awake")>]
-    static member ``register player network prefabs``(__instance: PlayerControllerB) =
-        ignore <| __instance.gameObject.AddComponent<MirageSpawner>()

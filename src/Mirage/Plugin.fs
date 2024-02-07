@@ -24,13 +24,13 @@ open HarmonyLib
 open Netcode
 open NAudio.Lame
 open Mirage.PluginInfo
-open Mirage.Patch.SpawnMirage
+open Mirage.Core.Config
+open Mirage.Core.Logger
 open Mirage.Patch.NetworkPrefab
 open Mirage.Patch.SyncConfig
 open Mirage.Patch.RemovePenalty
-open Mirage.Core.Config
-open Mirage.Core.Logger
 open Mirage.Patch.RecordAudio
+open Mirage.Patch.SpawnMaskedEnemy
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -47,16 +47,8 @@ type Plugin() =
             iter (unbox<Type> >> harmony.PatchAll) 
                 [   typeof<RegisterPrefab>
                     typeof<RecordAudio>
-                    typeof<SpawnMirage>
+                    typeof<SpawnMaskedEnemy>
                     typeof<SyncConfig>
                     typeof<RemovePenalty>
                 ]
-            ignore <| harmony.Patch(
-                original =
-                    AccessTools.Method(
-                        AccessTools.Inner(typeof<MaskedPlayerEnemy>, "<killAnimation>d__102"), 
-                        "MoveNext"
-                    ),
-                transpiler = new HarmonyMethod(typeof<SpawnMirage>, "prevent duplicate mirage spawn")
-            )
         }

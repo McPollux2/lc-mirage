@@ -136,14 +136,7 @@ type AudioStream() =
             }
         }
 
-    member this.Awake() =
-        let audioSource = this.gameObject.AddComponent<AudioSource>()
-        audioSource.dopplerLevel <- 0f
-        audioSource.maxDistance <- 50f
-        audioSource.minDistance <- 6f
-        audioSource.priority <- 0
-        audioSource.spread <- 30f
-        set AudioSource audioSource
+    member this.Awake() = set AudioSource <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() =
         try canceller.Cancel()
