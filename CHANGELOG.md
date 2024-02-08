@@ -1,34 +1,13 @@
 ## Changelog
 
-### 1.0.0
+### 1.0.8
 
-- Initial release.
+- Fixed a bug where voice filters weren't being applied, causing mimicked voices to behave unpredictably
+- Fixed a bug where **SpawnOnPlayerDeath** could spawn two masked enemies in certain scenarios
 
-### 1.0.1
+### 1.0.7
 
-- Spawn on player death is now configurable.
-- Naturally spawned masked enemies now mimic a player at random.
-- Dependencies are now separated into its own packages.
-
-### 1.0.2
-
-- Bundled all dependencies I control into a single core lib (users now pull less packages).
-
-### 1.0.3
-
-- Support voice activity.
-
-### 1.0.4
-
-- Support voice mimicking on all vanilla enemies.
-- Add configuration option for mask texture and arms-out animation (for masked enemies).
-- Dead enemies no longer mimic voices.
-
-### 1.0.5
-
-- Use audio filters to sound more like vanilla voices
-- Mimicked voices on the outside can no longer be heard from inside the facility (and vice-versa)
-- Masked enemies no longer mimic voices while hiding on the ship
+- Hotfix: If the local player's mimicking voice is muted, it now becomes unmuted when the player is dead
 
 ### 1.0.6
 
@@ -43,11 +22,32 @@ Thanks to [jarylc](https://github.com/jarylc) for the initial [fixes](https://gi
 - Add configuration option to adjust voice mimicking delay for non-masked enemies
 - Add configuration option to mimic voices on modded enemies
 
-### 1.0.7
+### 1.0.5
 
-- Hotfix: If the local player's mimicking voice is muted, it now becomes unmuted when the player is dead
+- Use audio filters to sound more like vanilla voices
+- Mimicked voices on the outside can no longer be heard from inside the facility (and vice-versa)
+- Masked enemies no longer mimic voices while hiding on the ship
 
-### 1.0.8
+### 1.0.4
 
-- Fixed a bug where voice filters weren't being applied, causing mimicked voices to behave unpredictably
-- Fixed a bug where **SpawnOnPlayerDeath** could spawn two masked enemies in certain scenarios
+- Support voice mimicking on all vanilla enemies.
+- Add configuration option for mask texture and arms-out animation (for masked enemies).
+- Dead enemies no longer mimic voices.
+
+### 1.0.3
+
+- Support voice activity.
+
+### 1.0.2
+
+- Bundled all dependencies I control into a single core lib (users now pull less packages).
+
+### 1.0.1
+
+- Spawn on player death is now configurable.
+- Naturally spawned masked enemies now mimic a player at random.
+- Dependencies are now separated into its own packages.
+
+### 1.0.0
+
+- Initial release.
