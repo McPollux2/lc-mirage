@@ -33,9 +33,9 @@ let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPre
     if not <| isNull enemyAI then
         iter (ignore << (enemyAI :> EnemyAI).gameObject.AddComponent)
             [   typeof<AudioStream>
-                typeof<VoiceFilter>
                 typeof<MimicPlayer>
                 typeof<MimicVoice>
+                typeof<VoiceFilter>
             ]
 
 type RegisterPrefab() =

@@ -16,7 +16,7 @@
  *)
 module Mirage.Patch.SpawnMaskedEnemy
 
-open System
+open System.Collections.Generic
 open FSharpPlus
 open HarmonyLib
 open GameNetcodeStuff
@@ -30,8 +30,8 @@ open Mirage.Unity.Network
 let private get<'A> = getter<'A> "SpawnMaskedEnemy"
 
 type SpawnMaskedEnemy() =
-
     static let random = new System.Random()
+    static let killedPlayers = new HashSet<uint64>()
 
     static let MaskItem = field<HauntedMaskItem>()
     static let getMaskItem = get MaskItem "MaskItem"
@@ -62,15 +62,19 @@ type SpawnMaskedEnemy() =
         }
 
     [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<StartOfRound>, "StartGame")>]
+    static member ``reset killed players``() = killedPlayers.Clear()
+
+    [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "KillPlayerServerRpc")>]
-    static member ``mimic player on player death if a masked enemy spawns`` (
+    static member ``spawn a masked enemy on player death (if configuration is enabled)``(
         __instance: PlayerControllerB,
         causeOfDeath: int,
         deathAnimation: int,
         spawnBody: bool,
         bodyVelocity: Vector3
     ) =
-        if __instance.IsHost then
+        if __instance.IsHost && killedPlayers.Add __instance.playerClientId then
             let playerKilledByMaskItem = 
                 causeOfDeath = int CauseOfDeath.Suffocation
                     && spawnBody
@@ -79,9 +83,7 @@ type SpawnMaskedEnemy() =
                 causeOfDeath = int CauseOfDeath.Strangulation
                     && deathAnimation = 4
             let config = getConfig()
-            let isPlayerAloneRequired = 
-                config.spawnOnlyWhenPlayerAlone && __instance.isPlayerAlone
-                    || not config.spawnOnlyWhenPlayerAlone
+            let isPlayerAloneRequired = not config.spawnOnlyWhenPlayerAlone || __instance.isPlayerAlone
             let spawnRateSuccess () = random.Next(1, 101) <= config.spawnOnPlayerDeath
             if not playerKilledByMaskItem
                 && not playerKilledByMaskedEnemy

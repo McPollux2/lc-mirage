@@ -6,6 +6,7 @@ open Unity.Netcode
 open GameNetcodeStuff
 open Mirage.Core.Field
 open Mirage.Core.Config
+open Mirage.Core.Logger
 
 /// <summary>
 /// A component that attaches to an <b>EnemyAI</b> to mimic a player.
@@ -60,10 +61,14 @@ type MimicPlayer () =
                         let playerId = random.Next <| round.connectedPlayersAmount + 1
                         Some <| StartOfRound.Instance.allPlayerScripts[playerId]
                     if enemyAI :? MaskedPlayerEnemy then
-                        if isNull maskedEnemy.mimickingPlayer then randomPlayer()
-                        else Some maskedEnemy.mimickingPlayer
-                    else if mimicEnemyEnabled enemyAI then randomPlayer()
-                    else None
+                        if isNull maskedEnemy.mimickingPlayer then
+                            randomPlayer()
+                        else 
+                            Some maskedEnemy.mimickingPlayer
+                    else if mimicEnemyEnabled enemyAI then
+                        randomPlayer()
+                    else
+                        None
                 set MimickingPlayer player
                 mimicPlayer player maskedEnemy
                 this.MimicPlayerClientRpc <| int player.playerClientId
