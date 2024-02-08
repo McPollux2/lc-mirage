@@ -46,3 +46,8 @@ Thanks to [jarylc](https://github.com/jarylc) for the initial [fixes](https://gi
 ### 1.0.7
 
 - Hotfix: If the local player's mimicking voice is muted, it now becomes unmuted when the player is dead
+
+### 1.0.8
+
+- Fixed a bug where voice filters weren't being applied, causing mimicked voices to behave unpredictably
+- Fixed a bug where **SpawnOnPlayerDeath** could spawn two masked enemies in certain scenarios

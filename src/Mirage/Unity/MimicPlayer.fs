@@ -6,7 +6,6 @@ open Unity.Netcode
 open GameNetcodeStuff
 open Mirage.Core.Field
 open Mirage.Core.Config
-open Mirage.Core.Logger
 
 /// <summary>
 /// A component that attaches to an <b>EnemyAI</b> to mimic a player.
@@ -77,9 +76,8 @@ type MimicPlayer () =
     [<ClientRpc>]
     member this.MimicPlayerClientRpc(playerId) =
         if not this.IsHost then
-            let maskedEnemy = this.GetComponent<MaskedPlayerEnemy>()
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
             set MimickingPlayer player
-            mimicPlayer player maskedEnemy 
+            mimicPlayer player <| this.GetComponent<MaskedPlayerEnemy>()
 
     member _.GetMimickingPlayer() = getValue MimickingPlayer

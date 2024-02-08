@@ -80,10 +80,8 @@ type MimicVoice() =
         toUniTask_ canceller.Token <| runMimicLoop enemy
 
     member this.Awake() =
-        let audioStream = this.gameObject.GetComponent<AudioStream>()
-        set AudioStream audioStream
-        let enemyAI = this.gameObject.GetComponent<EnemyAI>()
-        setNullable EnemyAI enemyAI
+        set AudioStream <| this.gameObject.GetComponent<AudioStream>()
+        setNullable EnemyAI <| this.gameObject.GetComponent<EnemyAI>()
     
     member this.Start() =
         if this.IsHost then
