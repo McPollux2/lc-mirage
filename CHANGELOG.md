@@ -1,5 +1,13 @@
 ## Changelog
 
+### 1.0.9
+
+- Ship camera now spectates the correct masked enemy
+- Recording deletion can now be configured in two ways:
+    - Set ``DeleteRecordingsPerRound`` to ``true`` to delete recordings per-round
+    - Set ``DeleteRecordingsPerRound`` to ``true`` to delete recordings per-game
+- Recordings now automatically delete upon closing the game
+
 ### 1.0.8
 
 - Fixed a bug where voice filters weren't being applied, causing mimicked voices to behave unpredictably
