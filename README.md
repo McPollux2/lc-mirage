@@ -18,15 +18,15 @@ Mirage is a mod that gives masked enemies the ability to mimic a player's voice 
 
 If you have questions, and/or want to stay up-to-date with the mod:
 
-1. Join the LC [modding discord](https://discord.gg/lcmod)
-2. Go to the Mirage [release thread](https://discord.com/channels/1168655651455639582/1200695291972685926) and ask your question
+1. Join the lethal company modding [discord](https://discord.gg/lcmod).
+2. Go to the mirage [release thread](https://discord.com/channels/1168655651455639582/1200695291972685926) and ask your question.
 
 ## What configuration options should I use for a more vanilla experience?
 
-- Set ``EnablePenalty`` to ``true`` to allow post-round credit penalties to apply.
-- Set ``EnableNaturalSpawn`` to ``true`` to allow masked enemies to naturally spawn (recommended to use a spawn control mod on top of this).
-- Set ``SpawnOnPlayerDeath`` to ``0`` to disable the zombie-like spawning mechanic.
-- **Recommended:** Set ``MuteLocalPlayerVoice`` to ``true`` to make a voice mimic muted for you locally while it still plays for others (unless you die).
+- ``EnablePenalty = true`` to allow post-round credit penalties to apply.
+- ``EnableNaturalSpawn = true`` to allow masked enemies to naturally spawn (recommended to use a spawn control mod on top of this).
+- ``SpawnOnPlayerDeath = 0`` to disable the zombie-like spawning mechanic.
+- **Recommended:** ``MuteLocalPlayerVoice = true`` to make a voice mimic muted for you locally while it still plays for others (unless you die).
 
 ## Why do players who disconnect no longer get their voice mimicked?
 
