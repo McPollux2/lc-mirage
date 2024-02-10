@@ -16,6 +16,7 @@
  *)
 namespace Mirage
 
+open UnityEngine
 open System
 open System.IO
 open BepInEx
@@ -31,6 +32,7 @@ open Mirage.Patch.SyncConfig
 open Mirage.Patch.RemovePenalty
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMaskedEnemy
+open Mirage.Core.Audio.Recording
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -43,6 +45,7 @@ type Plugin() =
             initNetcodePatcher()
             return! initConfig this.Config
             ignore <| LameDLL.LoadNativeDLL [|Path.GetDirectoryName this.Info.Location|]
+            Application.add_quitting deleteRecordings
             let harmony = new Harmony(pluginId)
             iter (unbox<Type> >> harmony.PatchAll) 
                 [   typeof<RegisterPrefab>

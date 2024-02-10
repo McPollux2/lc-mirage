@@ -53,9 +53,11 @@ let isRecording (dissonance: DissonanceComms) (speechDetected : bool) =
     isPlayerDead && (pushToTalkPressed || voiceActivated)
 
 /// <summary>
-/// Delete the recordings of the local player.
+/// Delete the recordings of the local player. Any exception found is ignored.
 /// </summary>
-let deleteRecordings () = Directory.Delete(RecordingDirectory, true)
+let deleteRecordings () =
+    try Directory.Delete(RecordingDirectory, true)
+    with | _ -> ()
 
 /// <summary>
 /// Get a random recording's file path. If no recordings exist, this will return <b>None</b>.

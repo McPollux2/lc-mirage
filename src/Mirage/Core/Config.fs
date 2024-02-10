@@ -61,6 +61,13 @@ type private LocalConfig(config: ConfigFile) =
             40000,
             "The maximum amount of time in between voice playbacks (in milliseconds).\nThis only applies for non-masked enemies."
         )
+    member val DeleteRecordingsPerRound =
+        config.Bind<bool>(
+            imitateSection,
+            "DeleteRecordingsPerRound",
+            true,
+            "Set to true to have recordings deleted in between rounds. Set to false to delete in between games."
+        )
     member val MuteLocalPlayerVoice =
         config.Bind<bool>(
             imitateSection,
@@ -255,6 +262,7 @@ type SyncedConfig =
         imitateMinDelayNonMasked: int
         imitateMaxDelayNonMasked: int
         muteLocalPlayerVoice: bool
+        deleteRecordingsPerRound: bool
         enableMaskedEnemy: bool
         enableBaboonHawk: bool
         enableBracken: bool
@@ -288,6 +296,7 @@ let private toSyncedConfig (config: LocalConfig) =
         imitateMinDelayNonMasked = config.ImitateMinDelayNonMasked.Value
         imitateMaxDelayNonMasked = config.ImitateMaxDelayNonMasked.Value
         muteLocalPlayerVoice = config.MuteLocalPlayerVoice.Value
+        deleteRecordingsPerRound = config.DeleteRecordingsPerRound.Value
         enableMaskedEnemy = config.EnableMaskedEnemy.Value
         enableBaboonHawk = config.EnableBaboonHawk.Value
         enableBracken = config.EnableBracken.Value

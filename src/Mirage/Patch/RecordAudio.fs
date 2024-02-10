@@ -24,6 +24,7 @@ open Dissonance.Audio.Capture
 open System.IO
 open Mirage.Core.Field
 open Mirage.Core.Audio.Recording
+open Mirage.Core.Config
 open Mirage.Core.Logger
 
 let private get<'A> (field: Field<'A>) = field.Value
@@ -59,10 +60,18 @@ type RecordAudio() =
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<StartOfRound>, "ResetPlayersLoadedValueClientRpc")>]
-    static member ``deleting recordings when game starts``() =
-        try deleteRecordings()
-        with | _ -> ()
+    static member ``deleting recordings if per-round is enabled``() =
         roundStarted <- true
+        if getConfig().deleteRecordingsPerRound then
+            logInfo "round is over. deleting recordings"
+            deleteRecordings()
+
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<MenuManager>, "Start")>]
+    static member ``a``() =
+        if not <| getConfig().deleteRecordingsPerRound then
+            logInfo "game is over. deleting recordings"
+            deleteRecordings()
 
     interface IMicrophoneSubscriber with
         member _.ReceiveMicrophoneData(buffer, format) =
