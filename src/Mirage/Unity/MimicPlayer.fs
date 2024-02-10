@@ -17,13 +17,14 @@ type MimicPlayer () =
     let random = new Random()
     let MimickingPlayer = field()
 
-    let mimicPlayer (player: PlayerControllerB) (maskedEnemy: MaskedPlayerEnemy) =
+    let mimicPlayer (player: PlayerControllerB) redirectToEnemy (maskedEnemy: MaskedPlayerEnemy) =
         if not <| isNull maskedEnemy then
             maskedEnemy.mimickingPlayer <- player
             maskedEnemy.SetSuit player.currentSuitID
             maskedEnemy.SetEnemyOutside(not player.isInsideFactory)
             maskedEnemy.SetVisibilityOfMaskedEnemy()
-            player.redirectToEnemy <- maskedEnemy
+            if redirectToEnemy then
+                player.redirectToEnemy <- maskedEnemy
             if not <| isNull player.deadBody then
                 player.deadBody.DeactivateBody false
 
@@ -55,29 +56,25 @@ type MimicPlayer () =
                 let round = StartOfRound.Instance
                 let enemyAI = this.GetComponent<EnemyAI>()
                 let maskedEnemy = this.GetComponent<MaskedPlayerEnemy>()
-                let! player =
+                let! (player, redirectToEnemy) =
                     let randomPlayer () = 
                         let playerId = random.Next <| round.connectedPlayersAmount + 1
-                        Some <| StartOfRound.Instance.allPlayerScripts[playerId]
+                        Some <| (StartOfRound.Instance.allPlayerScripts[playerId], false)
                     if enemyAI :? MaskedPlayerEnemy then
-                        if isNull maskedEnemy.mimickingPlayer then
-                            randomPlayer()
-                        else 
-                            Some maskedEnemy.mimickingPlayer
-                    else if mimicEnemyEnabled enemyAI then
-                        randomPlayer()
-                    else
-                        None
+                        if isNull maskedEnemy.mimickingPlayer then randomPlayer()
+                        else Some (maskedEnemy.mimickingPlayer, true)
+                    else if mimicEnemyEnabled enemyAI then randomPlayer()
+                    else None
                 set MimickingPlayer player
-                mimicPlayer player maskedEnemy
-                this.MimicPlayerClientRpc <| int player.playerClientId
+                mimicPlayer player redirectToEnemy maskedEnemy
+                this.MimicPlayerClientRpc(int player.playerClientId, redirectToEnemy)
         }
 
     [<ClientRpc>]
-    member this.MimicPlayerClientRpc(playerId) =
+    member this.MimicPlayerClientRpc(playerId, redirectToEnemy) =
         if not this.IsHost then
             let player = StartOfRound.Instance.allPlayerScripts[playerId]
             set MimickingPlayer player
-            mimicPlayer player <| this.GetComponent<MaskedPlayerEnemy>()
+            mimicPlayer player redirectToEnemy <| this.GetComponent<MaskedPlayerEnemy>()
 
     member _.GetMimickingPlayer() = getValue MimickingPlayer
