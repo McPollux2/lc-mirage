@@ -18,7 +18,6 @@ module Mirage.Unity.MimicVoice
 
 open Unity.Netcode
 open FSharpPlus
-open GameNetcodeStuff
 open System
 open System.Threading
 open Mirage.Core.Field
@@ -29,92 +28,69 @@ open Mirage.Core.Config
 open Mirage.Unity.AudioStream
 open Mirage.Unity.MimicPlayer
 
+#nowarn "40"
+
 let private get<'A> = getter<'A> "MimicVoice"
 
 /// <summary>
 /// A component that attaches to an <b>EnemyAI</b> to mimic a player's voice.
 /// </summary>
-type MimicVoice() =
+type MimicVoice() as self =
     inherit NetworkBehaviour()
 
-    let canceller = new CancellationTokenSource()
     let random = new Random()
 
+    let MimicPlayer = field<MimicPlayer>()
     let AudioStream = field<AudioStream>()
     let EnemyAI = field()
+    let getMimicPlayer = get MimicPlayer "MimicPlayer"
     let getAudioStream = get AudioStream "AudioStream"
     let getEnemyAI = get EnemyAI "EnemyAI"
 
-    /// <summary>
-    /// Mimic the voice of the local player's voice (for all players).
-    /// </summary>
-    let mimicLocalVoice enemy =
-        let streamLocalVoice () =
-            handleResult <| monad' {
-                let! audioStream = getAudioStream "mimicVoice"
-                let player = StartOfRound.Instance.localPlayerController
-                flip iter (getRandomRecording random) <| fun recording ->
-                    try
-                        if player.playerClientId = 0UL then
-                            audioStream.StreamAudioFromFile recording
-                        else
-                            audioStream.UploadAndStreamAudioFromFile(
-                                player.actualClientId,
-                                recording
-                            )
-                    with | error ->
-                        logError $"Failed to mimic voice: {error}"
-            }
-        let rec runMimicLoop (enemyAI: EnemyAI) =
+    let startVoiceMimic (enemyAI: EnemyAI) =
+        let rec runMimicLoop =
+            let config = getConfig()
+            let mimicVoice () =
+                handleResult <| monad' {
+                    let methodName = "mimicVoice"
+                    let! mimicPlayer = getMimicPlayer methodName
+                    let! audioStream = getAudioStream methodName
+                    ignore <| monad' {
+                        let! player = mimicPlayer.GetMimickingPlayer()
+                        let! recording = getRandomRecording random
+                        try
+                            if player.IsHost && player.playerClientId = 0UL then
+                                logInfo "ishost streaming audio"
+                                audioStream.StreamAudioFromFile recording
+                            else if player = StartOfRound.Instance.localPlayerController then
+                                logInfo "isclient uploading audio"
+                                audioStream.UploadAndStreamAudioFromFile(
+                                    player.actualClientId,
+                                    recording
+                                )
+                        with | error ->
+                            logError $"Failed to mimic voice: {error}"
+                    }
+                }
+            let delay =
+                if enemyAI :? MaskedPlayerEnemy then
+                    random.Next(config.imitateMinDelay, config.imitateMaxDelay + 1)
+                else
+                    random.Next(config.imitateMinDelayNonMasked, config.imitateMaxDelayNonMasked + 1)
             async {
-                streamLocalVoice()
-                let config = getConfig()
-                let delay = 
-                    if enemyAI :? MaskedPlayerEnemy then
-                        random.Next(config.imitateMinDelay, config.imitateMaxDelay + 1)
-                    else
-                        random.Next(config.imitateMinDelayNonMasked, config.imitateMaxDelayNonMasked + 1)
-                return! liftAsync <| Async.Sleep delay
-                return! runMimicLoop enemy
+                mimicVoice()
+                return! Async.Sleep delay
+                return! runMimicLoop
             }
-        toUniTask_ canceller.Token <| runMimicLoop enemy
+        toUniTask_ self.destroyCancellationToken runMimicLoop
 
     member this.Awake() =
+        set MimicPlayer <| this.gameObject.GetComponent<MimicPlayer>()
         set AudioStream <| this.gameObject.GetComponent<AudioStream>()
         setNullable EnemyAI <| this.gameObject.GetComponent<EnemyAI>()
     
-    member this.Start() =
-        if this.IsHost then
-            let mimicPlayer = this.gameObject.GetComponent<MimicPlayer>()
-            iter this.StartVoiceMimic <| mimicPlayer.GetMimickingPlayer()
-
-    override _.OnDestroy() =
-        try canceller.Cancel()
-        with | _ -> ()
-        dispose canceller
-
-    /// <summary>
-    /// Begin mimicking the player's voice.<br />
-    /// Note: This can only be invoked by the host.
-    /// </summary>
-    member this.StartVoiceMimic(player: PlayerControllerB) =
+    member _.Start() =
         handleResult <| monad' {
-            if not this.IsHost then
-                return! Error "MimicVoice#StartVoiceMimic can only be invoked by the host."
-            let! enemyAI = getEnemyAI "StartVoiceMimic"
-            if player.playerClientId = 0UL then
-                mimicLocalVoice enemyAI
-            else
-                this.StartVoiceMimicClientRpc <|
-                    new ClientRpcParams(
-                        Send = new ClientRpcSendParams(TargetClientIds = [|player.actualClientId|])
-                    )
-        }
-
-    [<ClientRpc>]
-    member this.StartVoiceMimicClientRpc(_: ClientRpcParams) =
-        handleResult <| monad' {
-            if not <| this.IsHost then
-                let! enemyAI = getEnemyAI "StartVoiceMimicClientRpc"
-                mimicLocalVoice enemyAI
+            let! enemyAI = getEnemyAI "Start"
+            startVoiceMimic enemyAI
         }

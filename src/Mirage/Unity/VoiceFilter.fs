@@ -106,16 +106,21 @@ type VoiceFilter() =
                         getConfig().muteLocalPlayerVoice
                             && mimickingPlayer = localPlayer
                             && not mimickingPlayer.isPlayerDead
-                    let isNotHauntedByDressGirl () =
+                    let isNotHauntedOrDisappearedDressGirl () =
                         if enemyAI :? DressGirlAI then
                             let dressGirlAI = enemyAI :?> DressGirlAI
-                            not dressGirlAI.hauntingLocalPlayer || not dressGirlAI.enemyMeshEnabled
+                            let disappeared = 
+                                not dressGirlAI.disappearingFromStare
+                                    && not dressGirlAI.choseDisappearingPosition
+                                    && not dressGirlAI.disappearByVanishing
+                                    && not dressGirlAI.staringInHaunt
+                            not dressGirlAI.hauntingLocalPlayer || disappeared
                         else
                             false
                     if enemyAI.isEnemyDead
                         || maskedEnemyIsHiding()
                         || isMimicLocalPlayerMuted()
-                        || isNotHauntedByDressGirl()
+                        || isNotHauntedOrDisappearedDressGirl()
                     then
                         audioSource.mute <- true
                     else if enemyAI.isOutside then
