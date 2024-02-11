@@ -50,7 +50,7 @@ type MimicPlayer() as self =
             | :? SandWormAI -> config.enableEarthLeviathan
             | :? MouthDogAI -> config.enableEyelessDog
             | :? ForestGiantAI -> config.enableForestKeeper
-            | :? DressGirlAI -> config.enableGhostGirl
+            | :? DressGirlAI -> false // DressGirlAI sets the mimicking player after choosing who to haunt.
             | :? HoarderBugAI -> config.enableHoardingBug
             | :? BlobAI -> config.enableHygrodere
             | :? JesterAI -> config.enableJester
@@ -110,7 +110,7 @@ type MimicPlayer() as self =
     [<ClientRpc>]
     member this.ResetMimicPlayerClientRpc() =
         if not this.IsHost then
-            setNone MimickingPlayer
+            this.ResetMimicPlayer()
 
     member _.GetMimickingPlayer() = getValue MimickingPlayer
 
@@ -130,6 +130,8 @@ type MimicPlayer() as self =
                             int player.playerClientId
 
                     match (Option.ofObj dressGirlAI.hauntingPlayer, getValue MimickingPlayer) with
+                        | (Some hauntingPlayer, Some mimickingPlayer) when hauntingPlayer = mimickingPlayer && round.connectedPlayersAmount > 0 ->
+                            this.MimicPlayer(randomPlayerNotHaunted(), false)
                         | (Some hauntingPlayer, None) ->
                             if round.connectedPlayersAmount = 0 then
                                 this.MimicPlayer(int hauntingPlayer.playerClientId, false)

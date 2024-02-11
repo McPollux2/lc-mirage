@@ -60,10 +60,8 @@ type MimicVoice() as self =
                         let! recording = getRandomRecording random
                         try
                             if player.IsHost && player.playerClientId = 0UL then
-                                logInfo "ishost streaming audio"
                                 audioStream.StreamAudioFromFile recording
                             else if player = StartOfRound.Instance.localPlayerController then
-                                logInfo "isclient uploading audio"
                                 audioStream.UploadAndStreamAudioFromFile(
                                     player.actualClientId,
                                     recording

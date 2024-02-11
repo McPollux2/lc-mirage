@@ -72,6 +72,9 @@
     <Reference Include="UnityEngine.PhysicsModule">
       <HintPath>../lib/UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>../lib/UnityEngine.AIModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine">
       <HintPath>../lib/UnityEngine.dll</HintPath>
     </Reference>
