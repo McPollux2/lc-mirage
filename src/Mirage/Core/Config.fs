@@ -30,7 +30,7 @@ open Mirage.Core.Logger
 /// <summary>
 /// Local preferences managed by BepInEx.
 /// </summary>
-type private LocalConfig(config: ConfigFile) =
+type internal LocalConfig(config: ConfigFile) =
     let [<Literal>] imitateSection = "Imitate player"
     let [<Literal>] maskedSection = "MaskedPlayerEnemy"
     member val ImitateMinDelay =
@@ -66,7 +66,14 @@ type private LocalConfig(config: ConfigFile) =
             imitateSection,
             "DeleteRecordingsPerRound",
             true,
-            "Set to true to have recordings deleted in between rounds. Set to false to delete in between games."
+            "Set to true to have recordings deleted in between rounds. Set to false to delete in between games.\nNote: This setting is synced to all clients."
+        )
+    member val IgnoreRecordingsDeletion =
+        config.Bind<bool>(
+            imitateSection,
+            "IgnoreRecordingsDeletion",
+            false,
+            "Set to true to never delete recordings (ignores the option set by DeleteRecordingsPerRound).\nNote: This setting is not synced to other clients."
         )
     member val MuteLocalPlayerVoice =
         config.Bind<bool>(
@@ -263,7 +270,7 @@ type private LocalConfig(config: ConfigFile) =
 /// https://lethal.wiki/dev/intermediate/custom-config-syncing
 /// </summary>
 [<Serializable>]
-type SyncedConfig =
+type internal SyncedConfig =
     {   imitateMinDelay: int
         imitateMaxDelay: int
         imitateMinDelayNonMasked: int
@@ -336,7 +343,7 @@ let private toSyncedConfig (config: LocalConfig) =
 /// <summary>
 /// An action for synchronizing the <b>SyncedConfig</b>.
 /// </summary>
-type SyncAction = RequestSync | ReceiveSync
+type internal SyncAction = RequestSync | ReceiveSync
 
 /// <summary>
 /// Convert the action to the message event name.
@@ -354,15 +361,19 @@ let private LocalConfig = field()
 let private SyncedConfig = field()
 
 /// <summary>
+/// Retrieves a <b>LocalConfig</b>, containing the local player's configuration.<br />
+/// If you need a syned config, use <b>getConfig()</b>.
+/// </summary>
+let internal getLocalConfig () =
+    let errorIfMissing () =
+        invalidOp "Failed to retrieve local config. This is probably due to not running initConfig."
+    Option.defaultWith errorIfMissing  <| getValue LocalConfig
+
+/// <summary>
 /// Retrieves a <b>SyncedConfig</b>, either from being synced with the host, or taken by the local config.<br />
 /// This requires <b>initConfig</b> to be invoked to work.
 /// </summary>
-let getConfig () =
-    let errorIfMissing () =
-        invalidOp "Failed to retrieve local config. This is probably due to running initConfig."
-    match getValue SyncedConfig with
-        | Some config -> config
-        | None -> Option.defaultWith errorIfMissing (toSyncedConfig <!> getValue LocalConfig)
+let internal getConfig () = Option.defaultWith (toSyncedConfig << getLocalConfig) <| getValue SyncedConfig
 
 /// <summary>
 /// Initialize the configuration. Does nothing if you run it more than once.
@@ -447,7 +458,7 @@ let private onReceiveSync _ (reader: FastBufferReader) =
 /// <summary>
 /// Register the named message handler for the given action.
 /// </summary>
-let registerHandler (action: SyncAction) =
+let internal registerHandler (action: SyncAction) =
     let message = toNamedMessage action
     let register handler = messageManager().RegisterNamedMessageHandler(message, handler)
     match action with

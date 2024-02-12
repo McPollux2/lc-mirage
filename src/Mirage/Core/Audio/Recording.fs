@@ -24,6 +24,7 @@ open UnityEngine
 open System
 open System.IO
 open Dissonance
+open Mirage.Core.Config
 
 /// <summary>
 /// The directory to save audio files in.
@@ -56,8 +57,9 @@ let isRecording (dissonance: DissonanceComms) (speechDetected : bool) =
 /// Delete the recordings of the local player. Any exception found is ignored.
 /// </summary>
 let deleteRecordings () =
-    try Directory.Delete(RecordingDirectory, true)
-    with | _ -> ()
+    if not <| getLocalConfig().IgnoreRecordingsDeletion.Value then
+        try Directory.Delete(RecordingDirectory, true)
+        with | _ -> ()
 
 /// <summary>
 /// Get a random recording's file path. If no recordings exist, this will return <b>None</b>.
