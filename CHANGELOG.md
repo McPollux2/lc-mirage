@@ -1,5 +1,16 @@
 ## Changelog
 
+### 1.0.10
+
+- Fixed dress girl issues
+    - Mimicking voice is now muted while the dress girl is invisible
+    - In singleplayer, dress girl will always mimic the local player's voice
+    - In multiplayer, dress girl will always mimic the non-local player's voice
+- Bees no longer mimic voices when ``EnableModdedEnemies`` is enabled.
+- Add configuration option to mimic voices for locust swarms
+- Fixed navmesh error spam when an enemy tries to calculate its path
+- Recordings deletion can now be ignored (not synced to all players)
+
 ### 1.0.9
 
 - Ship camera now spectates the correct masked enemy

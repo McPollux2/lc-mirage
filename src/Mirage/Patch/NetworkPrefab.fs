@@ -17,7 +17,6 @@
 module Mirage.Patch.NetworkPrefab
 
 open FSharpPlus
-open GameNetcodeStuff
 open HarmonyLib
 open Unity.Netcode
 open Mirage.Core.Config

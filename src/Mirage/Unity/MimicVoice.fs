@@ -19,7 +19,6 @@ module Mirage.Unity.MimicVoice
 open Unity.Netcode
 open FSharpPlus
 open System
-open System.Threading
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad

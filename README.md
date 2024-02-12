@@ -1,16 +1,21 @@
 # Mirage
 
-Mirage is a mod that gives masked enemies the ability to mimic a player's voice (fully synced to all players).  
+Mirage is a mod that gives any enemy the ability to mimic a player's voice (fully synced to all players).  
 **This mod is required by the host and on all clients.** Clients that do not have the mod will run into desynchronization issues.
 
 ## Features
 
-- Spawn a masked enemy on player death (like a player turning into a zombie, chance is configurable)
-   - Mimic the dead player's voice to all nearby players, as well as spectators
-   - Use the player's outfit (this is vanilla behaviour)
-   - Remove the mask off of masked enemy
-   - Remove the arms out animation off of masked enemy
-- Naturally spawned masked enemies mimic a random player (with the features mentioned above)
+- Mimic the voice of a player for any enemy
+   - Use the same player's voice every time it attempts to mimic their voice
+   - Voice is synced to all players, where everyone hears the same voice
+   - Only masked enemies mimic voices by default, other enemies can be enabled via config
+- Spawn a masked enemy on player death (like a player turning into a zombie)
+   - Chance to spawn on death can be configured
+   - Set this to 0 to disable the feature
+   - Can be configured to only spawn if the dying player is alone
+- Masked enemies use the mimicking player's suit
+- Remove the mask off of masked enemy
+- Remove the arms out animation off of masked enemy
 - Remove the post-round credits penalty (configurable)
 - Configuration is synced to all players (only the host's config is used)
 
@@ -23,10 +28,13 @@ If you have questions, and/or want to stay up-to-date with the mod:
 
 ## What configuration options should I use for a more vanilla experience?
 
+If you'd like to get rid of the masked enemy's spawn on player death behaviour, try these config values:
+
 - ``EnablePenalty = true`` to allow post-round credit penalties to apply.
 - ``EnableNaturalSpawn = true`` to allow masked enemies to naturally spawn (recommended to use a spawn control mod on top of this).
 - ``SpawnOnPlayerDeath = 0`` to disable the zombie-like spawning mechanic.
-- **Recommended:** ``MuteLocalPlayerVoice = true`` to make a voice mimic muted for you locally while it still plays for others (unless you die).
+- **Recommended:**  
+  ``MuteLocalPlayerVoice = true`` to make a voice mimic muted for you locally while it still plays for others (unless you die).
 
 ## Why do players who disconnect no longer get their voice mimicked?
 
