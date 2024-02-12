@@ -23,7 +23,6 @@ open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.AudioStream
 open Mirage.Unity.MimicPlayer
-open UnityEngine.AI
 
 let private get<'A> = getter<'A> "VoiceFilter"
 
@@ -37,14 +36,12 @@ type VoiceFilter() as self =
     let mutable occluded = false
 
     let EnemyAI = field<EnemyAI>()
-    let NavMeshAgent = field<NavMeshAgent>()
     let MimicPlayer = field<MimicPlayer>()
     let AudioStream = field<AudioStream>()
     let LowPassFilter = field<AudioLowPassFilter>()
     let ReverbFilter = field<AudioReverbFilter>()
 
     let getEnemyAI = get EnemyAI "EnemyAI"
-    let getNavMeshAgent = get NavMeshAgent "NavMeshAgent"
     let getMimicPlayer = get MimicPlayer "MimicPlayer"
     let getAudioStream = get AudioStream "AudioStream"
     let getLowPassFilter = get LowPassFilter "LowPassFilter"
@@ -90,75 +87,69 @@ type VoiceFilter() as self =
         reverbFilter.room <- -2300f
         setNullable ReverbFilter reverbFilter
 
-        let navMeshAgent = this.GetComponent<NavMeshAgent>()
-        setNullable NavMeshAgent navMeshAgent
-        if navMeshAgent.isOnNavMesh then
-            occluded <- isOccluded()
+        occluded <- isOccluded()
 
     member this.Update() =
         handleResultWith mute <| monad' {
             let methodName = "Update"
-            let! navMeshAgent = getNavMeshAgent methodName
-            if not navMeshAgent.isOnNavMesh then mute()
-            else
-                let! audioStream = getAudioStream methodName
-                let audioSource = audioStream.GetAudioSource()
-                let! lowPassFilter = getLowPassFilter methodName
-                let! reverbFilter = getReverbFilter methodName
-                let! enemyAI = getEnemyAI methodName
-                let round = StartOfRound.Instance
-                let localPlayer = round.localPlayerController
-                let maskedEnemyIsHiding () = enemyAI :? MaskedPlayerEnemy && (enemyAI :?> MaskedPlayerEnemy).crouching
-                let! mimicPlayer = getMimicPlayer methodName
-                match mimicPlayer.GetMimickingPlayer() with
-                    | None -> audioSource.mute <- true
-                    | Some mimickingPlayer ->
-                        let isMimicLocalPlayerMuted () =
-                            getConfig().muteLocalPlayerVoice
-                                && mimickingPlayer = localPlayer
-                                && not mimickingPlayer.isPlayerDead
-                        let isNotHauntedOrDisappearedDressGirl () =
-                            enemyAI :? DressGirlAI && (
-                                let dressGirlAI = enemyAI :?> DressGirlAI
-                                let isVisible = dressGirlAI.staringInHaunt || dressGirlAI.moveTowardsDestination && dressGirlAI.movingTowardsTargetPlayer
-                                not <| dressGirlAI.hauntingLocalPlayer || not isVisible
+            let! audioStream = getAudioStream methodName
+            let audioSource = audioStream.GetAudioSource()
+            let! lowPassFilter = getLowPassFilter methodName
+            let! reverbFilter = getReverbFilter methodName
+            let! enemyAI = getEnemyAI methodName
+            let round = StartOfRound.Instance
+            let localPlayer = round.localPlayerController
+            let maskedEnemyIsHiding () = enemyAI :? MaskedPlayerEnemy && (enemyAI :?> MaskedPlayerEnemy).crouching
+            let! mimicPlayer = getMimicPlayer methodName
+            match mimicPlayer.GetMimickingPlayer() with
+                | None -> audioSource.mute <- true
+                | Some mimickingPlayer ->
+                    let isMimicLocalPlayerMuted () =
+                        getConfig().muteLocalPlayerVoice
+                            && mimickingPlayer = localPlayer
+                            && not mimickingPlayer.isPlayerDead
+                    let isNotHauntedOrDisappearedDressGirl () =
+                        enemyAI :? DressGirlAI && (
+                            let dressGirlAI = enemyAI :?> DressGirlAI
+                            let isVisible = dressGirlAI.staringInHaunt || dressGirlAI.moveTowardsDestination && dressGirlAI.movingTowardsTargetPlayer
+                            not <| dressGirlAI.hauntingLocalPlayer || not isVisible
+                        )
+                    if enemyAI.isEnemyDead
+                        || maskedEnemyIsHiding()
+                        || isMimicLocalPlayerMuted()
+                        || isNotHauntedOrDisappearedDressGirl()
+                    then
+                        audioSource.mute <- true
+                    else if enemyAI.isOutside then
+                        reverbFilter.enabled <- false
+                        audioSource.mute <- localPlayer.isInsideFactory
+                    else
+                        audioSource.mute <- not localPlayer.isInsideFactory
+                        let listenerPosition = round.audioListener.transform.position
+                        let distanceToListener = Vector3.Distance(listenerPosition, this.transform.position)
+                        let normalizedDistanceReverb = 0f - 3.4f * distanceToListener / audioSource.maxDistance / 5f
+                        let clampedDryLevel = Mathf.Clamp(normalizedDistanceReverb, -300f, -1f)
+                        let lerpFactorReverb = Time.deltaTime * 8f
+                        reverbFilter.dryLevel <-
+                            Mathf.Lerp(
+                                reverbFilter.dryLevel,
+                                clampedDryLevel,
+                                lerpFactorReverb
                             )
-                        if enemyAI.isEnemyDead
-                            || maskedEnemyIsHiding()
-                            || isMimicLocalPlayerMuted()
-                            || isNotHauntedOrDisappearedDressGirl()
-                        then
-                            audioSource.mute <- true
-                        else if enemyAI.isOutside then
-                            reverbFilter.enabled <- false
-                            audioSource.mute <- localPlayer.isInsideFactory
-                        else
-                            audioSource.mute <- not localPlayer.isInsideFactory
-                            let listenerPosition = round.audioListener.transform.position
-                            let distanceToListener = Vector3.Distance(listenerPosition, this.transform.position)
-                            let normalizedDistanceReverb = 0f - 3.4f * distanceToListener / audioSource.maxDistance / 5f
-                            let clampedDryLevel = Mathf.Clamp(normalizedDistanceReverb, -300f, -1f)
-                            let lerpFactorReverb = Time.deltaTime * 8f
-                            reverbFilter.dryLevel <-
-                                Mathf.Lerp(
-                                    reverbFilter.dryLevel,
-                                    clampedDryLevel,
-                                    lerpFactorReverb
-                                )
-                            reverbFilter.enabled <- true
+                        reverbFilter.enabled <- true
 
-                        if occluded then
-                            let distance = Vector3.Distance(StartOfRound.Instance.audioListener.transform.position, this.transform.position)
-                            let normalizedDistance = 2500f / distance / audioSource.maxDistance / 2f
-                            let clampedFrequency = Mathf.Clamp(normalizedDistance, 900f, 4000f)
-                            let lerpFactor = Time.deltaTime * 8f
-                            lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, clampedFrequency, lerpFactor)
-                        else
-                            lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, 10000f, Time.deltaTime * 8f);
-                        
-                        if checkInterval >= 0.5f then
-                            checkInterval <- 0f
-                            occluded <- isOccluded()
-                        else
-                            checkInterval <- checkInterval + Time.deltaTime
+                    if occluded then
+                        let distance = Vector3.Distance(StartOfRound.Instance.audioListener.transform.position, this.transform.position)
+                        let normalizedDistance = 2500f / distance / audioSource.maxDistance / 2f
+                        let clampedFrequency = Mathf.Clamp(normalizedDistance, 900f, 4000f)
+                        let lerpFactor = Time.deltaTime * 8f
+                        lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, clampedFrequency, lerpFactor)
+                    else
+                        lowPassFilter.cutoffFrequency <- Mathf.Lerp(lowPassFilter.cutoffFrequency, 10000f, Time.deltaTime * 8f);
+                    
+                    if checkInterval >= 0.5f then
+                        checkInterval <- 0f
+                        occluded <- isOccluded()
+                    else
+                        checkInterval <- checkInterval + Time.deltaTime
             }

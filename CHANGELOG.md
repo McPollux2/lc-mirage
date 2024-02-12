@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.0.11
+
+Hotfix: Revert the navmesh error spam "fix", since it actually caused non-hosts to not be able to hear voices
+
 ### 1.0.10
 
 - Fixed dress girl issues
@@ -8,7 +12,7 @@
     - In multiplayer, dress girl will always mimic the non-local player's voice
 - Bees no longer mimic voices when ``EnableModdedEnemies`` is enabled.
 - Add configuration option to mimic voices for locust swarms
-- Fixed navmesh error spam when an enemy tries to calculate its path
+- ~~Fixed navmesh error spam when an enemy tries to calculate its path~~
 - Recordings deletion can now be ignored (not synced to all players)
 
 ### 1.0.9

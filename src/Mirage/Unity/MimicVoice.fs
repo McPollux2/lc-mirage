@@ -47,28 +47,29 @@ type MimicVoice() as self =
     let getEnemyAI = get EnemyAI "EnemyAI"
 
     let startVoiceMimic (enemyAI: EnemyAI) =
-        let rec runMimicLoop =
-            let config = getConfig()
-            let mimicVoice () =
-                handleResult <| monad' {
-                    let methodName = "mimicVoice"
-                    let! mimicPlayer = getMimicPlayer methodName
-                    let! audioStream = getAudioStream methodName
-                    ignore <| monad' {
-                        let! player = mimicPlayer.GetMimickingPlayer()
-                        let! recording = getRandomRecording random
-                        try
-                            if player.IsHost && player.playerClientId = 0UL then
+        let mimicVoice () =
+            handleResult <| monad' {
+                let methodName = "mimicVoice"
+                let! mimicPlayer = getMimicPlayer methodName
+                let! audioStream = getAudioStream methodName
+                ignore <| monad' {
+                    let! player = mimicPlayer.GetMimickingPlayer()
+                    let! recording = getRandomRecording random
+                    try
+                        if player = StartOfRound.Instance.localPlayerController then
+                            if player.IsHost then
                                 audioStream.StreamAudioFromFile recording
-                            else if player = StartOfRound.Instance.localPlayerController then
+                            else
                                 audioStream.UploadAndStreamAudioFromFile(
                                     player.actualClientId,
                                     recording
                                 )
-                        with | error ->
-                            logError $"Failed to mimic voice: {error}"
-                    }
+                    with | error ->
+                        logError $"Failed to mimic voice: {error}"
                 }
+            }
+        let rec runMimicLoop =
+            let config = getConfig()
             let delay =
                 if enemyAI :? MaskedPlayerEnemy then
                     random.Next(config.imitateMinDelay, config.imitateMaxDelay + 1)
