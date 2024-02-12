@@ -25,7 +25,6 @@ open System.IO
 open Mirage.Core.Field
 open Mirage.Core.Audio.Recording
 open Mirage.Core.Config
-open Mirage.Core.Logger
 
 let private get<'A> (field: Field<'A>) = field.Value
 

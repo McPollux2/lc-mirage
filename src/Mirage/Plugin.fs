@@ -27,12 +27,13 @@ open NAudio.Lame
 open Mirage.PluginInfo
 open Mirage.Core.Config
 open Mirage.Core.Logger
+open Mirage.Core.Audio.Recording
 open Mirage.Patch.NetworkPrefab
 open Mirage.Patch.SyncConfig
 open Mirage.Patch.RemovePenalty
 open Mirage.Patch.RecordAudio
 open Mirage.Patch.SpawnMaskedEnemy
-open Mirage.Core.Audio.Recording
+open Mirage.Patch.IgnoreNavMesh
 
 [<BepInPlugin(pluginName, pluginId, pluginVersion)>]
 type Plugin() =
@@ -53,5 +54,6 @@ type Plugin() =
                     typeof<SpawnMaskedEnemy>
                     typeof<SyncConfig>
                     typeof<RemovePenalty>
+                    typeof<IgnoreNavMesh>
                 ]
         }

@@ -21,7 +21,7 @@ open GameNetcodeStuff
 open Unity.Netcode
 open Mirage.Core.Config
 
-type SyncConfig () =
+type SyncConfig() =
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<PlayerControllerB>, "ConnectClientToPlayerObject")>]
     static member ``synchronize config when joining a game``() =
