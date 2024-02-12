@@ -110,6 +110,13 @@ type private LocalConfig(config: ConfigFile) =
             false,
             "Whether or not bees should mimic voices."
         )
+    member val EnableLocustSwarm =
+        config.Bind<bool>(
+            imitateSection,
+            "EnableLocustSwarm",
+            false,
+            "Whether or not locust swarms should mimic voices."
+        )
     member val EnableCoilHead =
         config.Bind<bool>(
             imitateSection,
@@ -268,6 +275,7 @@ type SyncedConfig =
         enableBracken: bool
         enableSpider: bool
         enableBees: bool
+        enableLocustSwarm: bool
         enableCoilHead: bool
         enableEarthLeviathan: bool
         enableEyelessDog: bool
@@ -302,6 +310,7 @@ let private toSyncedConfig (config: LocalConfig) =
         enableBracken = config.EnableBracken.Value
         enableSpider = config.EnableSpider.Value
         enableBees = config.EnableBees.Value
+        enableLocustSwarm = config.EnableLocustSwarm.Value
         enableCoilHead = config.EnableCoilHead.Value
         enableEarthLeviathan = config.EnableEarthLeviathan.Value
         enableEyelessDog = config.EnableEyelessDog.Value

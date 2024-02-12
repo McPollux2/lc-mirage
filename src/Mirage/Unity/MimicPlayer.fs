@@ -42,15 +42,16 @@ type MimicPlayer() as self =
     let mimicEnemyEnabled (enemyAI: EnemyAI) =
         let config = getConfig()
         match enemyAI with
+            | :? DressGirlAI -> false // DressGirlAI sets the mimicking player after choosing who to haunt.
             | :? BaboonBirdAI -> config.enableBaboonHawk
             | :? FlowermanAI -> config.enableBracken
             | :? SandSpiderAI -> config.enableSpider
-            | :? DocileLocustBeesAI -> config.enableBees
+            | :? DocileLocustBeesAI -> config.enableLocustSwarm
+            | :? RedLocustBees -> config.enableBees
             | :? SpringManAI -> config.enableCoilHead
             | :? SandWormAI -> config.enableEarthLeviathan
             | :? MouthDogAI -> config.enableEyelessDog
             | :? ForestGiantAI -> config.enableForestKeeper
-            | :? DressGirlAI -> false // DressGirlAI sets the mimicking player after choosing who to haunt.
             | :? HoarderBugAI -> config.enableHoardingBug
             | :? BlobAI -> config.enableHygrodere
             | :? JesterAI -> config.enableJester
@@ -117,6 +118,9 @@ type MimicPlayer() as self =
     member this.Update() =
         ignore <| monad' {
             if this.IsHost then
+                // Set the mimicking player after the haunting player changes.
+                // In singleplayer, the haunting player will always be the local player.
+                // In multiplayer, the haunting player will always be the non-local player.
                 let! enemyAI = getEnemyAI "Update" 
                 if (enemyAI : EnemyAI) :? DressGirlAI then
                     let dressGirlAI = enemyAI :?> DressGirlAI
