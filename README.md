@@ -5,7 +5,7 @@ Mirage is a mod that gives any enemy the ability to mimic a player's voice (full
 
 ## Features
 
-- Mimic the voice of a player for any enemy
+- Mimic the voice of a player for any enemy (such as bracken, dress girl, modded enemies, etc)
    - Use the same player's voice every time it attempts to mimic their voice
    - Voice is synced to all players, where everyone hears the same voice
    - Only masked enemies mimic voices by default, other enemies can be enabled via config
