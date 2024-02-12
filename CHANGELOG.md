@@ -2,7 +2,7 @@
 
 ### 1.0.11
 
-Hotfix: Revert the navmesh error spam "fix", since it actually caused non-hosts to not be able to hear voices
+Hotfix: Revert the crossed-out change from v1.0.10, which caused non-host players to not hear any voices
 
 ### 1.0.10
 
