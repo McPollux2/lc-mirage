@@ -2,7 +2,7 @@
 
 ### 1.0.12
 
-- Voice filters should now sound a lot more like a real player
+- Mimicked voices should now sound a lot more like an actual player's voice (changed audio filters)
 - ``SpawnOnPlayerDeath`` no longer spams an error if a player falls into the void
 - Masked enemies no longer mimic voices if it was spawned after a player falls into the void
 
