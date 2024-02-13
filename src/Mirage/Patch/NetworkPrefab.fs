@@ -24,7 +24,6 @@ open Mirage.Core.Logger
 open Mirage.Unity.MimicVoice
 open Mirage.Unity.AudioStream
 open Mirage.Unity.Network
-open Mirage.Unity.VoiceFilter
 open Mirage.Unity.MimicPlayer
 
 let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPrefab) =
@@ -34,7 +33,6 @@ let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPre
             [   typeof<AudioStream>
                 typeof<MimicPlayer>
                 typeof<MimicVoice>
-                typeof<VoiceFilter>
             ]
 
 type RegisterPrefab() =

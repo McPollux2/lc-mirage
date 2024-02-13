@@ -82,13 +82,60 @@ type MimicVoice() as self =
             }
         toUniTask_ self.destroyCancellationToken runMimicLoop
 
+    let mute () =
+        handleResult <| monad {
+            let! audioStream = getAudioStream "mute"
+            audioStream.GetAudioSource().mute <- true
+        }
+
     member this.Awake() =
         set MimicPlayer <| this.gameObject.GetComponent<MimicPlayer>()
         set AudioStream <| this.gameObject.GetComponent<AudioStream>()
         setNullable EnemyAI <| this.gameObject.GetComponent<EnemyAI>()
-    
+        let audioStream = this.GetComponent<AudioStream>()
+        set AudioStream audioStream
+        let audioSource = audioStream.GetAudioSource()
+        audioSource.dopplerLevel <- 0f
+        audioSource.maxDistance <- 50f
+        audioSource.minDistance <- 6f
+        audioSource.priority <- 0
+        audioSource.spread <- 30f
+        audioSource.spatialBlend <- 1f
+        audioSource.gameObject.AddComponent<OccludeAudio>().useReverb <- true
+
     member _.Start() =
         handleResult <| monad' {
             let! enemyAI = getEnemyAI "Start"
             startVoiceMimic enemyAI
+        }
+
+    member _.Update() =
+        handleResultWith mute <| monad' {
+            let methodName = "Update"
+            let! audioStream = getAudioStream methodName
+            let audioSource = audioStream.GetAudioSource()
+            let! mimicPlayer = getMimicPlayer methodName
+            let! enemyAI = getEnemyAI methodName
+            let localPlayer = StartOfRound.Instance.localPlayerController
+            match mimicPlayer.GetMimickingPlayer() with
+                | None -> audioSource.mute <- true
+                | Some mimickingPlayer ->
+                    let isMimicLocalPlayerMuted () =
+                        getConfig().muteLocalPlayerVoice
+                            && mimickingPlayer.IsLocalPlayer
+                            && not mimickingPlayer.isPlayerDead
+                    let isNotHauntedOrDisappearedDressGirl () =
+                        enemyAI :? DressGirlAI && (
+                            let dressGirlAI = enemyAI :?> DressGirlAI
+                            let isVisible = dressGirlAI.staringInHaunt || dressGirlAI.moveTowardsDestination && dressGirlAI.movingTowardsTargetPlayer
+                            not <| dressGirlAI.hauntingLocalPlayer || not isVisible
+                        )
+                    let maskedEnemyIsHiding () = enemyAI :? MaskedPlayerEnemy && (enemyAI :?> MaskedPlayerEnemy).crouching
+                    audioSource.mute <-
+                        enemyAI.isEnemyDead
+                            || maskedEnemyIsHiding()
+                            || isMimicLocalPlayerMuted()
+                            || isNotHauntedOrDisappearedDressGirl()
+                            || (localPlayer.isInsideFactory && enemyAI.isOutside)
+                            || (not localPlayer.isInsideFactory && not enemyAI.isOutside)
         }

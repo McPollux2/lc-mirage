@@ -95,7 +95,6 @@
     <Compile Include="Mirage/Unity/AudioStream.fs" />
     <Compile Include="Mirage/Unity/MimicPlayer.fs" />
     <Compile Include="Mirage/Unity/MimicVoice.fs" />
-    <Compile Include="Mirage/Unity/VoiceFilter.fs" />
     <Compile Include="Mirage/Patch/IgnoreNavMesh.fs" />
     <Compile Include="Mirage/Patch/RecordAudio.fs" />
     <Compile Include="Mirage/Patch/NetworkPrefab.fs" />
