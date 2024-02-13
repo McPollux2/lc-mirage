@@ -25,6 +25,7 @@ open Mirage.Unity.MimicVoice
 open Mirage.Unity.AudioStream
 open Mirage.Unity.Network
 open Mirage.Unity.MimicPlayer
+open Mirage.Unity.SyncedNavMesh
 
 let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPrefab) =
     let enemyAI = networkPrefab.Prefab.GetComponent<'A>()
@@ -33,6 +34,7 @@ let private init<'A when 'A : null and 'A :> EnemyAI> (networkPrefab: NetworkPre
             [   typeof<AudioStream>
                 typeof<MimicPlayer>
                 typeof<MimicVoice>
+                typeof<SyncedNavMesh>
             ]
 
 type RegisterPrefab() =

@@ -14,6 +14,7 @@ let private get<'A> = getter<'A> "MimicPlayer"
 /// A component that attaches to an <b>EnemyAI</b> to mimic a player.
 /// If the attached enemy is a <b>MaskedPlayerEnemy</b>, this will also copy its visuals.
 /// </summary>
+[<AllowNullLiteral>]
 type MimicPlayer() as self =
     inherit NetworkBehaviour()
 
@@ -92,7 +93,7 @@ type MimicPlayer() as self =
     member this.MimicPlayer(playerId, redirectToEnemy) =
         let player = StartOfRound.Instance.allPlayerScripts[playerId]
         logInstance $"Mimicking player #{player.playerClientId}"
-        set MimickingPlayer player
+        setNullable MimickingPlayer player
         mimicPlayer player redirectToEnemy <| this.GetComponent<MaskedPlayerEnemy>()
         if this.IsHost then
             this.MimicPlayerClientRpc(playerId, redirectToEnemy)

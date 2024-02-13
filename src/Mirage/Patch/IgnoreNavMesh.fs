@@ -17,19 +17,32 @@
 module Mirage.Patch.IgnoreNavMesh
 
 open HarmonyLib
+open System.Runtime.CompilerServices
+open Mirage.Unity.SyncedNavMesh
 
 type IgnoreNavMesh() =
+    static let occludeNavMesh = new ConditionalWeakTable<OccludeAudio, SyncedNavMesh>()
+
     [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<EnemyAI>, "SetDestinationToPosition")>]
-    static member ``skip Enemy#SetDestinationToPosition if not on nav mesh``(__instance: EnemyAI) =
-        __instance.agent.isOnNavMesh
-
-    [<HarmonyPrefix>]
     [<HarmonyPatch(typeof<EnemyAI>, "DoAIInterval")>]
-    static member ``skip Enemy#DoAIInterval if not on nav mesh``(__instance: EnemyAI) =
+    [<HarmonyPatch(typeof<EnemyAI>, "PathIsIntersectedByLineOfSight")>]
+    static member ``skip nav mesh calculations if not on nav mesh``(__instance: EnemyAI) =
         __instance.agent.isOnNavMesh
 
+    [<HarmonyPostfix>]
+    [<HarmonyPatch(typeof<OccludeAudio>, "Start")>]
+    static member ``store nav mesh for later use``(__instance: OccludeAudio) =
+        let navMesh = __instance.GetComponent<SyncedNavMesh>()
+        if not <| isNull navMesh then
+            occludeNavMesh.Add(__instance, navMesh)
+
     [<HarmonyPrefix>]
-    [<HarmonyPatch(typeof<EnemyAI>, "PathIsIntersectedByLineOfSight")>]
-    static member ``skip Enemy#PathIsIntersectedByLineOfSight if not on nav mesh``(__instance: EnemyAI) =
-        __instance.agent.isOnNavMesh
+    [<HarmonyPatch(typeof<OccludeAudio>, "Update")>]
+    static member ``skip OccludeAudio#Update if not on nav mesh``(__instance: OccludeAudio) =
+        let mutable agent = null
+        if occludeNavMesh.TryGetValue(__instance, &agent) then
+            __instance.thisAudio.mute <- not <| agent.IsOnNavMesh()
+            agent.IsOnNavMesh()
+        else
+            true

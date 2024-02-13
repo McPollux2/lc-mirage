@@ -54,6 +54,6 @@ type Plugin() =
                     typeof<SpawnMaskedEnemy>
                     typeof<SyncConfig>
                     typeof<RemovePenalty>
-                    //typeof<IgnoreNavMesh>
+                    typeof<IgnoreNavMesh>
                 ]
         }

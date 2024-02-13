@@ -16,9 +16,7 @@
  *)
 module Mirage.Unity.MimicVoice
 
-open Unity.Netcode
 open FSharpPlus
-open System
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Core.Monad
@@ -28,16 +26,18 @@ open Mirage.Unity.AudioStream
 open Mirage.Unity.MimicPlayer
 
 #nowarn "40"
+open UnityEngine
 
 let private get<'A> = getter<'A> "MimicVoice"
 
 /// <summary>
 /// A component that attaches to an <b>EnemyAI</b> to mimic a player's voice.
 /// </summary>
+[<AllowNullLiteral>]
 type MimicVoice() as self =
-    inherit NetworkBehaviour()
+    inherit MonoBehaviour()
 
-    let random = new Random()
+    let random = new System.Random()
 
     let MimicPlayer = field<MimicPlayer>()
     let AudioStream = field<AudioStream>()

@@ -39,6 +39,7 @@ let private get<'A> : Getter<'A> = getter "AudioStream"
 /// <summary>
 /// A component that allows an entity to stream audio to a client, playing the audio back live.
 /// </summary>
+[<AllowNullLiteral>]
 type AudioStream() =
     inherit NetworkBehaviour()
 
@@ -136,7 +137,7 @@ type AudioStream() =
             }
         }
 
-    member this.Awake() = set AudioSource <| this.gameObject.AddComponent<AudioSource>()
+    member this.Awake() = setNullable AudioSource <| this.gameObject.AddComponent<AudioSource>()
 
     override _.OnDestroy() =
         try canceller.Cancel()
