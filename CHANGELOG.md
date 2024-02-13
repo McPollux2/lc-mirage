@@ -1,8 +1,14 @@
 ## Changelog
 
+### 1.0.12
+
+- Voice filters should now sound a lot more like a real player
+- ``SpawnOnPlayerDeath`` no longer spams an error if a player falls into the void
+- Masked enemies no longer mimic voices if it was spawned after a player falls into the void
+
 ### 1.0.11
 
-Hotfix: Revert the crossed-out change from v1.0.10, which caused non-host players to not hear any voices
+- Hotfix: Revert the crossed-out change from v1.0.10, which caused non-host players to not hear any voices
 
 ### 1.0.10
 
