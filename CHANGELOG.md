@@ -1,5 +1,10 @@
 ## Changelog
 
+### 1.0.13
+
+- AdvancedCompany cosmetics now properly apply on hosts (previously only applied on non-hosts)
+- Fixed a bug that caused ``MuteLocalPlayerVoice`` to get ignored
+
 ### 1.0.12
 
 - Mimicked voices should now sound a lot more like an actual player's voice (changed audio filters)
