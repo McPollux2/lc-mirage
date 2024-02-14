@@ -7,6 +7,7 @@ open GameNetcodeStuff
 open Mirage.Core.Field
 open Mirage.Core.Config
 open Mirage.Core.Logger
+open Mirage.Core.Monad
 
 let private get<'A> = getter<'A> "MimicPlayer"
 

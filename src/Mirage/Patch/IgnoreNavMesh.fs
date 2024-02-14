@@ -42,7 +42,11 @@ type IgnoreNavMesh() =
     static member ``skip OccludeAudio#Update if not on nav mesh``(__instance: OccludeAudio) =
         let mutable agent = null
         if occludeNavMesh.TryGetValue(__instance, &agent) then
-            __instance.thisAudio.mute <- not <| agent.IsOnNavMesh()
+            // In cases where the audio source is already muted from elsewhere, we don't want to update it here.
+            // The update function is skipped if it's not on a navmesh to avoid errors, since OccludeAudio doesn't do any checks itself.
+            if not __instance.thisAudio.mute then
+                __instance.thisAudio.mute <- not <| agent.IsOnNavMesh()
             agent.IsOnNavMesh()
         else
+            // If the game object doesn't have a SyncedNavMesh at all, don't stop the update function from running.
             true

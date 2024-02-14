@@ -122,7 +122,7 @@ type MimicVoice() as self =
                 | Some mimickingPlayer ->
                     let isMimicLocalPlayerMuted () =
                         getConfig().muteLocalPlayerVoice
-                            && mimickingPlayer.IsLocalPlayer
+                            && mimickingPlayer = localPlayer
                             && not mimickingPlayer.isPlayerDead
                     let isNotHauntedOrDisappearedDressGirl () =
                         enemyAI :? DressGirlAI && (
