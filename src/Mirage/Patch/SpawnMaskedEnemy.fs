@@ -26,6 +26,7 @@ open Mirage.Core.Config
 open Mirage.Core.Field
 open Mirage.Core.Logger
 open Mirage.Unity.Network
+open Mirage.Unity.MimicPlayer
 
 let private get<'A> = getter<'A> "SpawnMaskedEnemy"
 
@@ -98,6 +99,12 @@ type SpawnMaskedEnemy() =
     [<HarmonyPatch("SetHandsOutServerRpc")>]
     [<HarmonyPatch("SetHandsOutClientRpc")>]
     static member ``disable mirage hands out``() = getConfig().enableArmsOut
+
+
+    [<HarmonyPrefix>]
+    [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Start")>]
+    static member ``start mimicking player``(__instance: MaskedPlayerEnemy) =
+        __instance.GetComponent<MimicPlayer>().StartMimicking()
 
     [<HarmonyPostfix>]
     [<HarmonyPatch(typeof<MaskedPlayerEnemy>, "Start")>]

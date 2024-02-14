@@ -73,7 +73,7 @@ type MimicPlayer() as self =
     member this.Awake() =
         setNullable EnemyAI <| this.GetComponent<EnemyAI>()
 
-    member this.Start() =
+    member this.StartMimicking() =
         ignore <| monad' {
             if this.IsHost then
                 let! enemyAI = getValue EnemyAI

@@ -89,11 +89,11 @@ type MimicVoice() as self =
         }
 
     member this.Awake() =
-        set MimicPlayer <| this.gameObject.GetComponent<MimicPlayer>()
-        set AudioStream <| this.gameObject.GetComponent<AudioStream>()
+        setNullable MimicPlayer <| this.gameObject.GetComponent<MimicPlayer>()
+        setNullable AudioStream <| this.gameObject.GetComponent<AudioStream>()
         setNullable EnemyAI <| this.gameObject.GetComponent<EnemyAI>()
         let audioStream = this.GetComponent<AudioStream>()
-        set AudioStream audioStream
+        setNullable AudioStream audioStream
         let audioSource = audioStream.GetAudioSource()
         audioSource.dopplerLevel <- 0f
         audioSource.maxDistance <- 50f

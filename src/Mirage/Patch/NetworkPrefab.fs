@@ -62,3 +62,11 @@ type RegisterPrefab() =
             flip iter (__instance.levels) <| fun level ->
                 flip iter (tryFind prefabExists level.Enemies) <| fun spawnable ->
                     ignore <| level.Enemies.Remove spawnable
+
+    [<HarmonyPrefix>]
+    [<HarmonyPatch(typeof<EnemyAI>, "Start")>]
+    static member ``start mimicking player``(__instance: EnemyAI) =
+        ignore <| monad' {
+            let! mimicPlayer = Option.ofObj (__instance.GetComponent<MimicPlayer>())
+            mimicPlayer.StartMimicking()
+        }
