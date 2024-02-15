@@ -84,7 +84,7 @@ type SpawnMaskedEnemy() =
                 causeOfDeath = int CauseOfDeath.Strangulation
                     && deathAnimation = 4
             let config = getConfig()
-            let isPlayerAloneRequired = not config.spawnOnlyWhenPlayerAlone || __instance.isPlayerAlone
+            let isPlayerAloneRequired = not config.spawnOnlyWhenPlayerAlone || nearOtherPlayers(__instance, 34)
             let spawnRateSuccess () = random.Next(1, 101) <= config.spawnOnPlayerDeath
             if not playerKilledByMaskItem
                 && not playerKilledByMaskedEnemy
@@ -113,3 +113,9 @@ type SpawnMaskedEnemy() =
             __instance.GetComponentsInChildren<Transform>()
                 |> filter _.name.StartsWith("HeadMask")
                 |> iter _.gameObject.SetActive(false)
+
+    let nearOtherPlayers (playerScript : PlayerControllerB playerScript) (checkRadius : float) =
+        playerScript.gameObject.Layer = 0
+        let result = Physics.CheckSphere(playerScript.transform.position, checkRadius, 8, QueryTriggerInteraction.Ignore)
+        playerScript.gameObject.Layer = 3
+        result
